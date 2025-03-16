@@ -14,7 +14,7 @@ namespace VssSvnConverter
 {
 	class CacheBuilder
 	{
-		const string DataFileName = "4-cached-versions-list.txt";
+		public const string DataFileName = "4-cached-versions-list.txt";
 		const string LogFileName = "log-4-cached-versions-list.txt";
 		const string ErrorsFileName = "log-4-errors-list.txt";
 		const string OnlyLastVersionFileName = "log-4-only-last-versions-list.txt";

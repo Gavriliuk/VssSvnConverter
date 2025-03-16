@@ -84,6 +84,11 @@ namespace VssSvnConverter
 
 		public List<FileRevision> Load(string file = DataFileName)
 		{
+			bool writeToConsole = file == DataFileName || file == CacheBuilder.DataFileName;
+
+			if (writeToConsole)
+				Console.WriteLine("Loading versions from {0}", file);
+
 			var list = new List<FileRevision>();
 			using(var r = File.OpenText(file))
 			{
@@ -104,8 +109,13 @@ namespace VssSvnConverter
 					};
 
 					list.Add(v);
+					if (writeToConsole && list.Count % 10000 == 0)
+						Console.WriteLine("Loaded {0} versions for {1} files, {2} users", list.Count, FileRevision.FileCount, FileRevision.UserCount);
 				}
 			}
+
+			if (writeToConsole && list.Count % 10000 != 0)
+				Console.WriteLine("Loaded {0} versions for {1} files, {2} users", list.Count, FileRevision.FileCount, FileRevision.UserCount);
 
 			return list;
 		}
@@ -115,58 +125,73 @@ namespace VssSvnConverter
 			var stopWatch = new Stopwatch();
 			stopWatch.Start();
 
+			Console.WriteLine("Building version list to {0}", DataFileName);
+
+			int findex = 0, vindex = 0, lastProgressPrc = 0;
+
 			using (var cache = new VssFileCache(opts.CacheDir + "-revs", opts.SourceSafeIni))
 			using(var wr = File.CreateText(DataFileName))
 			using(var log = File.CreateText(LogFileName))
 			{
-				wr.AutoFlush = log.AutoFlush = true;
+				log.AutoFlush = true;
 
 				var db = opts.DB.Value;
 
-				var findex = 0;
-				foreach (var spec in files.Select(t => t.Item1))
+				foreach (string spec in files.Select(t => t.Item1))
 				{
 					if (Program.Exit)
 						throw new Stop();
 
+					if (findex > 0 && findex % 100 == 0)
+						Console.WriteLine("Built {0} versions for {1} files ({2}%). Time: {3}", vindex, findex, lastProgressPrc, stopWatch.Elapsed);
+
+					int progressPrc = 100 * findex / files.Count;
+					if (progressPrc > lastProgressPrc)
+					{
+						if (progress != null)
+							progress((float)findex / files.Count);
+						lastProgressPrc = progressPrc;
+					}
 					findex++;
 
 					try{
 						IVSSItem item = db.VSSItem[spec];
-						var head = item.VersionNumber;
+						int head = item.VersionNumber;
 
-						var timestamp = item.VSSVersion.Date.Ticks;
+						long timestamp = item.VSSVersion.Date.Ticks;
 
 						var cachedData = cache.GetFilePath(spec, head, timestamp);
 						if (cachedData != null)
 						{
-							Console.Write("c");
-							Save(wr, Load(cachedData));
+							List<FileRevision> cachedItemRevisions = Load(cachedData);
+							if (cachedItemRevisions.Count > 0)
+							{
+								Save(wr, cachedItemRevisions);
+								vindex += cachedItemRevisions.Count;
+							}
 							// next file
 							continue;
 						}
 
-						Console.Write("[{0,5}/{1,5}] {2} ", findex, files.Count, item.Spec);
-						if (progress != null)
-							progress((float)findex / files.Count);
+						bool latestOnly = IsLatestOnly(opts, spec);
 
-						var rotationIndex = 0;
-						var rotationArray = @"|/-\|/-\".ToCharArray();
-
-						var latestOnly = IsLatestOnly(opts, spec);
-
-						var itemRevisions = new List<FileRevision>();
+						List<FileRevision> itemRevisions = new List<FileRevision>();
 						foreach (IVSSVersion ver in item.Versions)
 						{
 							if (Program.Exit)
 								throw new Stop();
 
-							Console.Write("{0}\b", rotationArray[rotationIndex++ % rotationArray.Length]);
-
-							if (ver.Action.StartsWith("Labeled ") || ver.Action.StartsWith("Branched "))
+							string action = ver.Action;
+							if (action.StartsWith("Labeled ") ||
+								action.StartsWith("Branched "))
 								continue;
 
-							if (!ver.Action.StartsWith("Checked in ") && !ver.Action.StartsWith("Created ") && !ver.Action.StartsWith("Archived ") && !ver.Action.StartsWith("Rollback to"))
+							vindex++;
+
+							if (!action.StartsWith("Checked in ") &&
+								!action.StartsWith("Created ") &&
+								!action.StartsWith("Archived ") &&
+								!action.StartsWith("Rollback to"))
 							{
 								log.WriteLine("Unknown action: " + ver.Action);
 							}
@@ -196,11 +221,7 @@ namespace VssSvnConverter
 
 							if (latestOnly)
 								break;
-
-							Console.Write('.');
 						}
-
-						Console.WriteLine(" ");
 
 						if (itemRevisions.Count > 0)
 						{
@@ -221,9 +242,10 @@ namespace VssSvnConverter
 
 								notEarlierThan = itemRevisions[i].At;
 							}
-						}
 
-						Save(wr, itemRevisions);
+							Save(wr, itemRevisions);
+							vindex += itemRevisions.Count;
+						}
 
 						var tempFile = Path.GetTempFileName();
 						try
@@ -249,7 +271,7 @@ namespace VssSvnConverter
 			}
 
 			stopWatch.Stop();
-			Console.WriteLine("Build files versions list complete. Take: {0}", stopWatch.Elapsed);
+			Console.WriteLine("Building version list complete. Built {0} versions for {1} files. Time: {2}", vindex, findex, stopWatch.Elapsed);
 		}
 
 		bool IsLatestOnly(Options opts, string spec)
