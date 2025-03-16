@@ -34,6 +34,9 @@ namespace VssSvnConverter
 
 					foreach (IVSSCheckout vssCheckout in vssLink.Checkouts)
 					{
+						if (Program.Exit)
+							throw new Stop();
+
 						xrefsCo.AddRef(item.Spec, vssCheckout.Username + " at " + vssCheckout.Date);
 
 						var coDate = vssCheckout.Date.Date;
@@ -61,6 +64,9 @@ namespace VssSvnConverter
 					tw.WriteLine("{0:yyyy-MM-dd} ({1} days ago)", kvp.Key, (int)(DateTime.Now - kvp.Key).TotalDays);
 					foreach (var tuple in kvp.Value)
 					{
+						if (Program.Exit)
+							throw new Stop();
+
 						tw.WriteLine("\t{0} at {1}", tuple.Item1, tuple.Item2);
 					}
 					tw.WriteLine();

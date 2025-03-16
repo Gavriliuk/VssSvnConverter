@@ -109,6 +109,9 @@ namespace VssSvnConverter
 
 					for (var i = fromCommit; i < commits.Count; i++)
 					{
+						if (Program.Exit)
+							throw new Stop();
+
 						var c = commits[i];
 
 						Console.WriteLine("[{2,6}/{3}] Import: {0:yyyy-MMM-dd HH:ss:mm}, by {1}", c.At, c.Author, i, commits.Count);
@@ -185,6 +188,9 @@ namespace VssSvnConverter
 					var replacements = new List<Tuple<Regex, string>>();
 					for (var i = 0; ; i++)
 					{
+						if (Program.Exit)
+							throw new Stop();
+
 						var rx = opts.Config[string.Format("censore-{0}-match{1}", v, i)].Select(x => new Regex(x, RegexOptions.IgnoreCase)).FirstOrDefault();
 						var replace = opts.Config[string.Format("censore-{0}-replace{1}", v, i)].FirstOrDefault();
 

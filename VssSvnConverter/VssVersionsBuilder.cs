@@ -73,6 +73,9 @@ namespace VssSvnConverter
 				var findex = 0;
 				foreach (var spec in files.Select(t => t.Item1))
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					findex++;
 
 					try{
@@ -102,6 +105,9 @@ namespace VssSvnConverter
 						var itemRevisions = new List<FileRevision>();
 						foreach (IVSSVersion ver in item.Versions)
 						{
+							if (Program.Exit)
+								throw new Stop();
+
 							Console.Write("{0}\b", rotationArray[rotationIndex++ % rotationArray.Length]);
 
 							if (ver.Action.StartsWith("Labeled ") || ver.Action.StartsWith("Branched "))

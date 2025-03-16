@@ -82,6 +82,9 @@ namespace VssSvnConverter
 				var keep = new List<FileRevision>();
 				foreach (var g in unimportant.ToList().GroupBy(r => r.FileSpec))
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					var maxRev = versions.Where(r => r.FileSpec == g.Key).Max(r => r.VssVersion);
 
 					// try find unimportant with most recent revision. this revision should be kept
@@ -115,6 +118,9 @@ namespace VssSvnConverter
 			{
 				foreach (var c in commits)
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					wr.WriteLine("Commit:{0}		Author:{1}		Comment:{2}", c.At.Ticks, c.Author, SerializeMultilineText(c.Comment));
 					c.Files.ToList().ForEach(f => {
 						Debug.Assert(f.At.Kind == DateTimeKind.Utc);
@@ -128,6 +134,9 @@ namespace VssSvnConverter
 			{
 				foreach (var c in commits)
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					wr.WriteLine($"{c.At:yyyy-MM-dd HH:mm:ss} {c.Author}");
 					var comment = string.Join("\n", c.Comment.Split('\n').Select(x => "\t" + x)).Trim();
 					if(!string.IsNullOrWhiteSpace(comment))
@@ -156,6 +165,9 @@ namespace VssSvnConverter
 
 			foreach (var rev in revs)
 			{
+				if (Program.Exit)
+					throw new Stop();
+
 				if (mapping.TryGetValue(rev.User.ToLowerInvariant(), out string author))
 				{
 					rev.OriginalUser = rev.User;
@@ -177,6 +189,9 @@ namespace VssSvnConverter
 				mapping = mapping ?? new Dictionary<string, string>();
 				foreach (var line in File.ReadAllLines(mappingFile).Where(l => !string.IsNullOrWhiteSpace(l)))
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					var ind = line.IndexOf('=');
 
 					if (ind == -1)

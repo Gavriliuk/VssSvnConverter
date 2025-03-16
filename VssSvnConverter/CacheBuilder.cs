@@ -58,7 +58,13 @@ namespace VssSvnConverter
 					.ToList()
 				;
 
-				listG.ForEach(g => versionsCountLog.WriteLine("{0,6} {1}", g.Count, g.Spec));
+				listG.ForEach(g =>
+				{
+					if (Program.Exit)
+						throw new Stop();
+
+					versionsCountLog.WriteLine("{0,6} {1}", g.Count, g.Spec);
+				});
 			}
 
 			// reduce pinned files to single revision
@@ -91,7 +97,13 @@ namespace VssSvnConverter
 						.ToList()
 					;
 
-					listG.ForEach(g => log.WriteLine("{0,6} {1}", g.Count, g.Spec));
+					listG.ForEach(g =>
+					{
+						if (Program.Exit)
+							throw new Stop();
+
+						log.WriteLine("{0,6} {1}", g.Count, g.Spec);
+					});
 				}
 
 				var cached = 0;
@@ -103,6 +115,9 @@ namespace VssSvnConverter
 
 				foreach (var file in list)
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					if (cache.GetFilePath(file.FileSpec, file.VssVersion) != null)
 					{
 						cached++;
@@ -166,6 +181,9 @@ namespace VssSvnConverter
 					versions.Clear();
 					foreach (var file in originalVersions)
 					{
+						if (Program.Exit)
+							throw new Stop();
+
 						if (_cache.GetFilePath(file.FileSpec, file.VssVersion) != null)
 						{
 							cached++;
@@ -221,6 +239,9 @@ namespace VssSvnConverter
 
 						foreach (var fg in fileGroup)
 						{
+							if (Program.Exit)
+								throw new Stop();
+
 							Process(fg);
 						}
 

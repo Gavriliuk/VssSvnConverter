@@ -7,15 +7,26 @@ using VssSvnConverter.Core;
 
 namespace VssSvnConverter
 {
+	class Stop : ApplicationException
+	{
+		public Stop() : base("User terminated") {}
+	}
+
 	class Program
 	{
 		static Options _opts;
+		static bool _exit;
+
+		public static bool Exit => _exit;
 
 		static Int32 Main(string[] args)
 		{
 			_opts = new Options(args);
 
-			try{
+			Application.ApplicationExit += new EventHandler((object sender, EventArgs e) => { _exit = true; });
+
+			try
+			{
 				if (args.Length == 0)
 				{
 					args = new [] { "ui" };

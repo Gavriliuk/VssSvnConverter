@@ -37,6 +37,8 @@ namespace VssSvnConverter
 					rootTypes.WriteLine("{0}	{1}", rootItem.Spec, rootItem.Type == 0 ? "d" : "f");
 
 					WalkItem(rootItem);
+					if (Program.Exit)
+						throw new Stop();
 				}
 
 				File.WriteAllLines(AllFilesList, _files.Select(t => string.Format("{0}	{1}", t.Item1, t.Item2)).ToArray());
@@ -140,10 +142,16 @@ namespace VssSvnConverter
 					.ToList()
 					.ForEach(g =>
 					{
+						if (Program.Exit)
+							throw new Stop();
+
 						map.WriteLine("{0}({1}):", g.Key, g.Count());
 
 						foreach (var f in g.OrderByDescending(ff => ff.Item2))
 						{
+							if (Program.Exit)
+								throw new Stop();
+
 							map.WriteLine("{0,10} {1}", f.Item2, f.Item1);
 						}
 						map.WriteLine();
@@ -158,7 +166,13 @@ namespace VssSvnConverter
 					.Select(t => new { Spec = t.Item1, Size = t.Item2 })
 					.OrderByDescending(inf => inf.Size)
 					.ToList()
-					.ForEach(inf => map.WriteLine("{0,10:0.0} KiB	{1}", inf.Size / 1024.0, inf.Spec))
+					.ForEach(inf =>
+					{
+						if (Program.Exit)
+							throw new Stop();
+
+						map.WriteLine("{0,10:0.0} KiB	{1}", inf.Size / 1024.0, inf.Spec);
+					})
 				;
 			}
 		}
@@ -179,6 +193,9 @@ namespace VssSvnConverter
 		{
 			foreach (IVSSItem item in items)
 			{
+				if (Program.Exit)
+					throw new Stop();
+
 				WalkItem(item);
 			}
 		}

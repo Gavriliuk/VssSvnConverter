@@ -80,7 +80,15 @@ namespace VssSvnConverter
 					Controls.Cast<Control>().ToList().ForEach(c => c.Enabled = true);
 					btn.Invalidate();
 				};
-				Invoke(action);
+				try
+				{
+					Invoke(action);
+				}
+				catch (Exception)
+				{
+					if (!Program.Exit)
+						throw;
+				}
 			}).Start();
 		}
 

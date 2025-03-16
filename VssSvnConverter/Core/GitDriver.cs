@@ -96,12 +96,18 @@ namespace VssSvnConverter.Core
 			{
 				foreach (var file in Directory.GetFiles(repoDir, "*.*", SearchOption.AllDirectories))
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					File.SetAttributes(file, FileAttributes.Normal);
 					File.Delete(file);
 				}
 
 				foreach (var dir in Directory.GetDirectories(repoDir))
 				{
+					if (Program.Exit)
+						throw new Stop();
+
 					Directory.Delete(dir, true);
 				}
 			}
