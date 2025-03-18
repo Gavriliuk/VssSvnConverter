@@ -46,7 +46,7 @@ namespace VssSvnConverter.Core
 			var r = _execHelper.Exec(args, _envVars);
 
 			// nothing to commit - ok valid
-			if (r.ExitCode == 1 && r.StdOut.Contains("nothing to commit, working directory clean"))
+			if (r.ExitCode == 1 && r.StdOut.Contains("nothing to commit"))
 				return r;
 
 			ExecHelper.ValidateResult(r, args);

@@ -159,11 +159,11 @@ namespace VssSvnConverter
 					break;
 
 				case "import-new":
-					new Importer().Import(_opts, CommitsBuilder.Load(), true, progress);
+					new Importer().Import(_opts, CommitsBuilder.Load(), true, noPrompt, progress);
 					break;
 
 				case "import":
-					new Importer().Import(_opts, CommitsBuilder.Load(), false, progress);
+					new Importer().Import(_opts, CommitsBuilder.Load(), false, noPrompt, progress);
 					break;
 
 				case "build-scripts":

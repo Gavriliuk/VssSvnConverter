@@ -36,7 +36,7 @@ namespace VssSvnConverter
 		public static volatile bool StopImport;
 		public static DateTimeOffset? DogWatch;
 
-		public void Import(Options opts, List<Commit> commits, bool startNewSession, Action<float> progress = null)
+		public void Import(Options opts, List<Commit> commits, bool startNewSession, bool noPrompt, Action<float> progress = null)
 		{
 			StopImport = false;
 			DogWatch = DateTimeOffset.Now;
@@ -77,7 +77,7 @@ namespace VssSvnConverter
 					;
 				}
 
-				if (MessageBox.Show(string.Format("Cleanu work tree and start import from commit #{0} by {1}", fromCommit, commits[fromCommit].Author), "Confirmation", MessageBoxButtons.OKCancel) != DialogResult.OK)
+				if (!noPrompt && MessageBox.Show(string.Format("Cleanup work tree and start import from commit #{0} by {1}", fromCommit, commits[fromCommit].Author), "Confirmation", MessageBoxButtons.OKCancel) != DialogResult.OK)
 					return;
 
 				if (opts.ImportDriver == "tfs")
