@@ -70,7 +70,7 @@ namespace VssSvnConverter
 			if (File.Exists(DataFileName))
 				File.Delete(DataFileName);
 
-			if (opts.UnimportantCheckinCommentRx.Length > 0)
+			/*if (opts.UnimportantCheckinCommentRx.Length > 0)
 			{
 				// find unimportant revisons
 				var unimportant = versions
@@ -100,7 +100,7 @@ namespace VssSvnConverter
 				{
 					versions.Remove(r);
 				}
-			}
+			}*/
 
 			// perform mapping vss user -> author
 			MapAuthors(versions);
@@ -137,7 +137,7 @@ namespace VssSvnConverter
 					if (Program.Exit)
 						throw new Stop();
 
-					wr.WriteLine($"{c.At:yyyy-MM-dd HH:mm:ss} {c.Author}");
+					wr.WriteLine($"{c.At.Ticks} {c.At:yyyy-MM-dd HH:mm:ss} {c.Author}");
 					var comment = string.Join("\n", c.Comment.Split('\n').Select(x => "\t" + x)).Trim();
 					if(!string.IsNullOrWhiteSpace(comment))
 						wr.WriteLine("\t" + comment);
@@ -209,7 +209,7 @@ namespace VssSvnConverter
 			return mapping;
 		}
 
-		HashSet<string> LoadOldAuthors()
+		/*HashSet<string> LoadOldAuthors()
 		{
 			var oldAuthors = new HashSet<string>();
 
@@ -223,11 +223,11 @@ namespace VssSvnConverter
 			}
 
 			return oldAuthors;
-		}
+		}*/
 
 		IEnumerable<Commit> SliceToCommits(List<FileRevision> revs)
 		{
-			var oldUsers = LoadOldAuthors();
+			//var oldUsers = LoadOldAuthors();
 
 			var currentCommitRevisions = new List<FileRevision>();
 
@@ -255,7 +255,7 @@ namespace VssSvnConverter
 					}
 
 					// if 'old-authors' specified in config - combine 'old' authors into single commit
-					if (currentCommitRevisions.Last().User != rev.User)
+					/*if (currentCommitRevisions.Last().User != rev.User)
 					{
 						// if author changed and one of authors not 'old' - stop current commit
 						if (!oldUsers.Contains(rev.User) || !oldUsers.Contains(currentCommitRevisions.Last().User))
@@ -263,12 +263,12 @@ namespace VssSvnConverter
 							i--;
 							break;
 						}
-					}
+					}*/
 
 					// if merge not allowed - check file already in one of already added revisions
 					if (!_opts.MergeSameFileChanges)
 					{
-						if (currentCommitRevisions.Any(r => StringComparer.OrdinalIgnoreCase.Compare(r.FileSpec, rev.FileSpec) == 0))
+						if (currentCommitRevisions.Any(r => r.FileId == rev.FileId))
 						{
 							i--;
 							break;
