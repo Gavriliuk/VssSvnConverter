@@ -194,7 +194,7 @@ namespace VssSvnConverter
 								log.WriteLine("Unknown action: " + ver.Action);
 							}
 
-							var user = ver.Username.ToLowerInvariant();
+							var user = ver.Username.ToLowerInvariant().Replace('.', ' ');
 
 							var fileVersionInfo = new FileRevision {
 								FileSpec = item.Spec,
