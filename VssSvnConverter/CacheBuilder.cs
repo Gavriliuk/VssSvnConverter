@@ -71,7 +71,7 @@ namespace VssSvnConverter
 			list = list
 				.GroupBy(f => f.FileId)
 				.Select(g => {
-					if (IsShouldBePinned(FileRevision.GetFile(g.Key)))
+					if (UseLatestOnly(FileRevision.GetFile(g.Key)))
 						return g.Take(1).ToArray();
 					return g.ToArray();
 				})
@@ -179,7 +179,7 @@ namespace VssSvnConverter
 					var errors = 0;
 
 					versions.Clear();
-					foreach (var file in originalVersions)
+					foreach (FileRevision file in originalVersions)
 					{
 						if (Program.Exit)
 							throw new Stop();
@@ -222,32 +222,53 @@ namespace VssSvnConverter
 					.ToList()
 				;
 
-				using(_log = File.CreateText(LogFileName))
+				Console.WriteLine("Building version cache to {0}", _options.CacheDir);
+
+				int findex = 0, vindex = 0, lastProgressPrc = 0;
+				bool useLatestOnly = _options.LatestOnly.Any() || _options.LatestOnlyRx.Any();
+
+				using (_log = File.CreateText(LogFileName))
 				{
 					_log.AutoFlush = true;
 
 					// cache
-					var fileGroups = versions.GroupBy(v => v.FileId).ToList();
-
-					for (var j = 0; j < fileGroups.Count; j++)
+					List<IGrouping<int, FileRevision>> fileGroups = versions.GroupBy(v => v.FileId).ToList();
+					foreach (IGrouping<int, FileRevision> fileGroup in fileGroups)
 					{
-						var fileGroup = fileGroups[j];
+						if (Program.Exit)
+							throw new Stop();
 
-						Console.Write("[{0}/{1}] Get: {3,5} x {2}", j, fileGroups.Count, FileRevision.GetFile(fileGroup.Key), fileGroup.Count());
-						if (progress != null)
-							progress((float)j / fileGroups.Count);
+						int progressPrc = 100 * vindex / originalVersions.Count;
+						if (progressPrc > lastProgressPrc)
+						{
+							if (progress != null)
+								progress((float)vindex / originalVersions.Count);
+							lastProgressPrc = progressPrc;
+						}
+						findex++;
 
-						foreach (var fg in fileGroup)
+						string fileSpec = FileRevision.GetFile(fileGroup.Key);
+						bool useOnce = useLatestOnly && UseLatestOnly(fileSpec);
+
+						foreach (FileRevision fr in fileGroup)
 						{
 							if (Program.Exit)
 								throw new Stop();
 
-							Process(fg);
-						}
+							GetFromVss(fr);
+							vindex++;
 
-						Console.WriteLine();
+							if (vindex % 1000 == 0)
+								Console.WriteLine("Built {0} versions for {1} files ({2}%). Time: {3}", vindex, findex, lastProgressPrc, sw.Elapsed);
+
+							if (useOnce)
+								break;
+						}
 					}
 				}
+
+				if (vindex % 1000 != 0)
+					Console.WriteLine("Total built {0} versions for {1} files. Time: {2}", vindex, findex, sw.Elapsed);
 
 				// build cached versions list
 				BuildCachedVersionsList(originalVersions);
@@ -259,49 +280,52 @@ namespace VssSvnConverter
 			Console.WriteLine("Building cache complete. Take {0}", sw.Elapsed);
 		}
 
-		void Process(FileRevision file)
-		{
-			if (!IsShouldBeProcessed(file.FileSpec))
-				return;
-
-			var sw = Stopwatch.StartNew();
-
-			GetFromVss(file);
-
-			sw.Stop();
-
-			lock (_log)
-			{
-				_log.WriteLine("[{2:s} +{3,-7}ms] Get: {0}@{1}", file.FileSpec, file.VssVersion, DateTimeOffset.Now, sw.ElapsedMilliseconds);
-				Console.Write('.');
-			}
-		}
-
 		void BuildCachedVersionsList(List<FileRevision> versions)
 		{
-			using (var sw = File.CreateText(DataFileName))
+			var sw = Stopwatch.StartNew();
+
+			Console.WriteLine("Building cached versions to {0}", DataFileName);
+
+			int findex = 0, vindex = 0, lastProgressPrc = 0;
+
+			bool useLatestOnly = _options.LatestOnly.Any() || _options.LatestOnlyRx.Any();
+
+			using (StreamWriter wr = File.CreateText(DataFileName))
 			{
-				foreach (var fileGroup in versions.GroupBy(v => v.FileId))
+				List<IGrouping<int, FileRevision>> fileGroups = versions.GroupBy(v => v.FileId).ToList();
+				foreach (IGrouping<int, FileRevision> fileGroup in fileGroups)
 				{
+					if (Program.Exit)
+						throw new Stop();
+
+					int progressPrc = 100 * findex / fileGroups.Count;
+					if (progressPrc > lastProgressPrc)
+						lastProgressPrc = progressPrc;
+					findex++;
+
 					// get in ascending order
-					var fileVersions = fileGroup.OrderBy(f => f.VssVersion).ToList();
+					List<FileRevision> fileVersions = fileGroup.OrderBy(f => f.VssVersion).ToList();
 
-					var brokenVersions = new List<int>();
-					var notRetainedVersions = new List<int>();
-					var otherErrors = new Dictionary<int, string>();
+					List<int> brokenVersions = new List<int>();
+					List<int> notRetainedVersions = new List<int>();
+					Dictionary<int, string> otherErrors = new Dictionary<int, string>();
 
-					if (IsShouldBePinned(FileRevision.GetFile(fileGroup.Key)))
+					string fileSpec = FileRevision.GetFile(fileGroup.Key);
+					if (useLatestOnly && UseLatestOnly(fileSpec))
 					{
 						// reduce file versions to latest only
 						fileVersions = fileVersions.Skip(fileVersions.Count - 1).ToList();
 					}
 
-					foreach (var file in fileVersions)
+					foreach (FileRevision file in fileVersions)
 					{
-						var inf = _cache.GetFileInfo(file.FileSpec, file.VssVersion);
+						if (Program.Exit)
+							throw new Stop();
+
+						vcslib.FileCache.CacheEntry inf = _cache.GetFileInfo(fileSpec, file.VssVersion);
 
 						if (inf == null)
-							throw new ApplicationException(string.Format("No in cache, but should be: {0}@{1}", file.FileSpec, file.VssVersion));
+							throw new ApplicationException(string.Format("Not in cache, but should be: {0}@{1}", file.FileSpec, file.VssVersion));
 
 						if (inf.ContentPath != null)
 						{
@@ -331,7 +355,7 @@ namespace VssSvnConverter
 								file.Comment += commentPlus;
 							}
 
-							sw.WriteLine("Ver:{0}	Spec:{1}	Phys:{2}	Author:{3}	At:{4}	DT:{5}	Comment:{6}",
+							wr.WriteLine("Ver:{0}	Spec:{1}	Phys:{2}	Author:{3}	At:{4}	DT:{5}	Comment:{6}",
 								file.VssVersion,
 								file.FileSpec,
 								file.Physical,
@@ -340,6 +364,7 @@ namespace VssSvnConverter
 								file.At,
 								file.Comment.Replace('\n', '\u0001')
 							);
+							vindex++;
 
 							notRetainedVersions.Clear();
 							brokenVersions.Clear();
@@ -357,36 +382,18 @@ namespace VssSvnConverter
 						throw new ApplicationException(string.Format("Absent content for latest file version: {0}", fileGroup.Key));
 				}
 			}
+
+			Console.WriteLine("Built {0} cached versions for {1} files. Time: {2}", vindex, findex, sw.Elapsed);
+
+			sw.Stop();
 		}
 
-		// when file request to being 'latest only' - its path added to this set and do not processed further
-		readonly HashSet<string> _pinned = new HashSet<string>();
-
-		// for pinned files return true only once - for first request
-		bool IsShouldBeProcessed(string spec)
-		{
-			lock (_pinned)
-			{
-				// skip file if requested only latest version, and it was already produced
-				if (_pinned.Contains(spec))
-					return false;
-
-				if (IsShouldBePinned(spec))
-				{
-					_pinned.Add(spec);
-					_log.WriteLine("Pinned: {0}", spec);
-				}
-			}
-
-			return true;
-		}
-
-		bool IsShouldBePinned(string spec)
+		bool UseLatestOnly(string spec)
 		{
 			return _options.LatestOnly.Contains(spec) || _options.LatestOnlyRx.Any(rx => rx.IsMatch(spec));
 		}
 
-		void GetFromVss(FileRevision file)
+		void GetFromVss(FileRevision fr)
 		{
 			// clean destination
 			foreach (var tempFile in Directory.GetFiles(_tempDir, "*", SearchOption.AllDirectories))
@@ -404,13 +411,13 @@ namespace VssSvnConverter
 
 			try
 			{
-				var vssItem = _db.VSSItem[file.FileSpec];
+				var vssItem = _db.VSSItem[fr.FileSpec];
 
 				// move to correct version
-				if (vssItem.VersionNumber != file.VssVersion)
-					vssItem = vssItem.Version[file.VssVersion];
+				if (vssItem.VersionNumber != fr.VssVersion)
+					vssItem = vssItem.Version[fr.VssVersion];
 
-				var dstFileName = Path.GetFileName(file.FileSpec.TrimStart('$', '/', '\\'));
+				var dstFileName = Path.GetFileName(fr.FileSpec.TrimStart('$', '/', '\\'));
 
 				var path = Path.Combine(_tempDir, Guid.NewGuid().ToString("N") + "-" + dstFileName);
 
@@ -433,7 +440,7 @@ namespace VssSvnConverter
 
 					Console.WriteLine("\nPhysical file mismatch. Try get with ss.exe");
 
-					path = new SSExeHelper(_options.SSPath, _log).Get(file.FileSpec, file.VssVersion, _tempDir);
+					path = new SSExeHelper(_options.SSPath, _log).Get(fr.FileSpec, fr.VssVersion, _tempDir);
 					if (path == null)
 					{
 						Console.WriteLine("Get with ss.exe failed");
@@ -441,12 +448,10 @@ namespace VssSvnConverter
 					}
 				}
 
-                var timestamp = vssItem.VSSVersion.Date.Ticks;
-                
 				// in force mode check if file already in cache and coincidence by hash
 				if(_options.Force)
 				{
-					var ce = _cache.GetFileInfo(file.FileSpec, file.VssVersion);
+					var ce = _cache.GetFileInfo(fr.FileSpec, fr.VssVersion);
 					if(ce != null)
 					{
 						string hash;
@@ -456,22 +461,22 @@ namespace VssSvnConverter
 
 						if(hash != ce.Sha1Hash)
 						{
-							_log.WriteLine("!!! Cache contains different content for: " + file.FileSpec);
+							_log.WriteLine("!!! Cache contains different content for: " + fr.FileSpec);
 							_log.WriteLine("{0} != {1}", hash, ce.Sha1Hash);
-                            _cache.AddFile(file.FileSpec, file.VssVersion, timestamp, path, false);
+							_cache.AddFile(fr.FileSpec, fr.VssVersion, path, false);
 						}
 						return;
 					}
 				}
-				_cache.AddFile(file.FileSpec, file.VssVersion, timestamp, path, false);
+				_cache.AddFile(fr.FileSpec, fr.VssVersion, path, false);
 			}
 			catch (Exception ex)
 			{
 				if (ex.Message.Contains("does not retain old versions of itself"))
 				{
-					Console.WriteLine("{0} hasn't retain version {1}.", file.FileSpec, file.VssVersion);
+					Console.WriteLine("{0} hasn't retain version {1}.", fr.FileSpec, fr.VssVersion);
 
-					_cache.AddError(file.FileSpec, file.VssVersion, "not-retained");
+					_cache.AddError(fr.FileSpec, fr.VssVersion, "not-retained");
 
 					return;
 				}
@@ -480,16 +485,16 @@ namespace VssSvnConverter
 				// known error
 				if (ex.Message.Contains("SourceSafe was unable to finish writing a file.  Check your available disk space, and ask the administrator to analyze your SourceSafe database."))
 				{
-					Console.Error.WriteLine("\nAbsent file revision: {0}@{1}", file.FileSpec, file.VssVersion);
+					Console.Error.WriteLine("\nAbsent file revision: {0}@{1}", fr.FileSpec, fr.VssVersion);
 
-					_cache.AddError(file.FileSpec, file.VssVersion, "broken-revision");
+					_cache.AddError(fr.FileSpec, fr.VssVersion, "broken-revision");
 
 					return;
 				}
 
-				_cache.AddError(file.FileSpec, file.VssVersion, ex.Message);
+				_cache.AddError(fr.FileSpec, fr.VssVersion, ex.Message);
 
-				UnrecognizedError(file, ex);
+				UnrecognizedError(fr, ex);
 			}
 		}
 

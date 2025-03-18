@@ -158,9 +158,7 @@ namespace VssSvnConverter
 						IVSSItem item = db.VSSItem[spec];
 						int head = item.VersionNumber;
 
-						long timestamp = item.VSSVersion.Date.Ticks;
-
-						var cachedData = cache.GetFilePath(spec, head, timestamp);
+						string cachedData = cache.GetFilePath(spec, head);
 						if (cachedData != null)
 						{
 							List<FileRevision> cachedItemRevisions = Load(cachedData);
@@ -253,7 +251,7 @@ namespace VssSvnConverter
 							using (var sw = new StreamWriter(tempFile, false, Encoding.UTF8))
 								Save(sw, itemRevisions);
 
-							cache.AddFile(spec, head, timestamp, tempFile, false);
+							cache.AddFile(spec, head, tempFile, false);
 						}
 						finally
 						{
