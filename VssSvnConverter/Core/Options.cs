@@ -184,10 +184,6 @@ namespace VssSvnConverter.Core
 				{
 					GitRepoDir = Path.Combine(Environment.CurrentDirectory, "_git_repo");
 				}
-				else
-				{
-					IsGitRepoDirExternal = true;
-				}
 
 				GitDefaultAuthorDomain = Config["git-default-author-domain"]
 					.DefaultIfEmpty("@dummy-email.org")

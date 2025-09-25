@@ -56,7 +56,7 @@ namespace VssSvnConverter
 					return -1;
 				}
 
-				var unkVerb = verbs.FirstOrDefault(v => v != "ui" && v != "build-list" && v != "build-list-stats" && v != "build-versions" && v != "build-links" && v != "build-cache" && v != "build-commits" && v != "build-wc" && v != "import" && v != "git-fast-import" && v != "build-scripts");
+				var unkVerb = verbs.FirstOrDefault(v => v != "ui" && v != "build-list" && v != "build-list-stats" && v != "build-versions" && v != "build-links" && v != "build-cache" && v != "build-commits" && v != "build-wc" && v != "import" && v != "import-new" && v != "git-fast-import" && v != "build-scripts");
 				if(unkVerb != null)
 				{
 					ShowHelp(unkVerb);

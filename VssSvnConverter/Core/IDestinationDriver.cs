@@ -13,6 +13,6 @@ namespace VssSvnConverter.Core
 		void AddFiles(params string[] files);
 		string GetDiff(string file);
 		void Revert(string file);
-		void CommitRevision(string author, string comment, DateTime time);
+		void CommitRevision(Commit commit);
 	}
 }

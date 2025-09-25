@@ -75,6 +75,71 @@ namespace VssSvnConverter
 		}
 	}
 
+	class CommitLabels
+	{
+		const string DataFileName = "2-labels.txt";
+		Dictionary<string, long> _all = new Dictionary<string, long>();
+
+		public int Count => _all.Count;
+		public Dictionary<string, long>.KeyCollection Texts => _all.Keys;
+		public Dictionary<string, long>.ValueCollection Times => _all.Values;
+
+
+		public void Clear()
+		{
+			_all.Clear();
+		}
+
+		public void Sort()
+		{
+			_all = _all.OrderBy(l => l.Value).ToDictionary(l => l.Key, l => l.Value);
+		}
+
+		public void Add(string label, DateTime at)
+		{
+			if (_all.TryGetValue(label, out long ticks))
+			{
+				if (at.Ticks != ticks)
+					throw new Exception($"Duplicated label {ticks}, {at.Ticks}, {label}");
+			}
+			else
+			{
+				_all.Add(label, at.Ticks);
+			}
+		}
+
+		public void Save()
+		{
+			File.WriteAllLines(DataFileName, _all.Select(l => $"{l.Value}\t{l.Key}"));
+		}
+
+		public void Load()
+		{
+			_all.Clear();
+
+			if (!File.Exists(DataFileName))
+				return;
+
+			using (StreamReader r = File.OpenText(DataFileName))
+			{
+				string line;
+				while ((line = r.ReadLine()) != null)
+				{
+					string[] arr = line.Split('\t');
+					Debug.Assert(arr.Length == 2);
+					_all.Add(arr[1], long.Parse(arr[0]));
+				}
+			}
+		}
+
+		public static CommitLabels LoadNew()
+		{
+			CommitLabels result = new CommitLabels();
+			result.Load();
+			return result;
+		}
+	}
+
 	class VssVersionsBuilder
 	{
 		const string DataFileName = "2-raw-versions-list.txt";
@@ -90,13 +155,13 @@ namespace VssSvnConverter
 				Console.WriteLine("Loading versions from {0}", file);
 
 			var list = new List<FileRevision>();
-			using(var r = File.OpenText(file))
+			using (var r = File.OpenText(file))
 			{
 				string line;
-				while((line = r.ReadLine()) != null)
+				while ((line = r.ReadLine()) != null)
 				{
 					var m = _versionRx.Match(line);
-					if(!m.Success)
+					if (!m.Success)
 						continue;
 
 					var v = new FileRevision {
@@ -127,11 +192,13 @@ namespace VssSvnConverter
 
 			Console.WriteLine("Building version list to {0}", DataFileName);
 
+			CommitLabels labels = CommitLabels.LoadNew();
+
 			int findex = 0, vindex = 0, lastProgressPrc = 0;
 
 			using (var cache = new VssFileCache(opts.CacheDir + "-revs", opts.SourceSafeIni))
-			using(var wr = File.CreateText(DataFileName))
-			using(var log = File.CreateText(LogFileName))
+			using (var wr = File.CreateText(DataFileName))
+			using (var log = File.CreateText(LogFileName))
 			{
 				log.AutoFlush = true;
 
@@ -180,9 +247,15 @@ namespace VssSvnConverter
 								throw new Stop();
 
 							string action = ver.Action;
-							if (action.StartsWith("Labeled ") ||
-								action.StartsWith("Branched "))
+							if (action.StartsWith("Branched "))
 								continue;
+
+							DateTime at = ver.Date.ToUniversalTime();
+							if (action.StartsWith("Labeled "))
+							{
+								labels.Add(action.Substring(9, action.Length - 10), at);
+								continue;
+							}
 
 							vindex++;
 
@@ -259,14 +332,16 @@ namespace VssSvnConverter
 								File.Delete(tempFile);
 						}
 					}
-					catch(Exception ex)
+					catch (Exception ex)
 					{
-						Console.WriteLine("ERROR: {0}", spec);
-						log.WriteLine("ERROR: {0}", spec);
-						log.WriteLine(ex.ToString());
+						log.WriteLine($"ERROR: {spec}\n{ex}");
+						Console.WriteLine($"ERROR: {spec}\n{ex.Message}");
 					}
 				}
 			}
+
+			labels.Sort();
+			labels.Save();
 
 			stopWatch.Stop();
 			Console.WriteLine("Building version list complete. Built {0} versions for {1} files. Time: {2}", vindex, findex, stopWatch.Elapsed);

@@ -86,6 +86,12 @@ namespace VssSvnConverter
 				}
 			}
 
+			Console.WriteLine($"Importing commits from {fromCommit} to {commits.Count}");
+
+			int lastCommit = fromCommit;
+			var stopWatch = new Stopwatch();
+			stopWatch.Start();
+
 			using (_cache = new VssFileCache(opts.CacheDir, _opts.SourceSafeIni))
 			using(var log = File.CreateText(LogFileName))
 			{
@@ -107,16 +113,25 @@ namespace VssSvnConverter
 						driver = new SvnDriver(opts.SvnWorkTreeDir, log);
 					}
 
+					int lastPrc = 0;
 					for (var i = fromCommit; i < commits.Count; i++)
 					{
 						if (Program.Exit)
 							throw new Stop();
 
-						var c = commits[i];
+						//var c = commits[i];
 
-						Console.WriteLine("[{2,6}/{3}] Import: {0:yyyy-MMM-dd HH:ss:mm}, by {1}", c.At, c.Author, i, commits.Count);
-						if (progress != null)
-							progress((float)i / commits.Count);
+						//Console.WriteLine($"[{i,6}/{commits.Count}] Import: {c.At:yyyy-MMM-dd HH:ss:mm}, by {c.Author}");
+						int prc = 100 * (i - fromCommit) / (commits.Count - fromCommit);
+						if (prc > lastPrc)
+						{
+							if (progress != null)
+								progress((float)i / commits.Count);
+							lastPrc = prc;
+						}
+
+						if (i > 0 && (i == fromCommit || i % 100 == 0))
+							Console.WriteLine($"Imported {i} commits from {commits.Count} ({prc}%). Time: {stopWatch.Elapsed}");
 
 						DogWatch = DateTimeOffset.Now;
 
@@ -124,16 +139,20 @@ namespace VssSvnConverter
 
 						DogWatch = DateTimeOffset.Now;
 
+						var c = commits[i];
+
 						LoadRevision(driver, c, log);
 
 						DogWatch = DateTimeOffset.Now;
 
-						driver.CommitRevision(commits[i].Author, c.Comment, commits[i].At);
+						driver.CommitRevision(c);
+						//driver.CommitRevision(commits[i].Author, c.Comment, commits[i].At);
 
 						DogWatch = DateTimeOffset.Now;
 
 						// OK
 						File.AppendAllText(DataFileName, i + "\n");
+						lastCommit = i;
 
 						if (StopImport)
 							break;
@@ -145,6 +164,11 @@ namespace VssSvnConverter
 					throw;
 				}
 			}
+
+			if (lastCommit > fromCommit && lastCommit % 100 == 0)
+				Console.WriteLine($"Imported {lastCommit} commits from {commits.Count} ({100 * lastCommit / commits.Count}%). Time: {stopWatch.Elapsed}");
+
+			stopWatch.Stop();
 
 			DogWatch = null;
 

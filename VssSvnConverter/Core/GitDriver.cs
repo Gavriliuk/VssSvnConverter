@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -63,16 +64,30 @@ namespace VssSvnConverter.Core
 			_gitHelper.Exec(string.Format("checkout -- \"{0}\"", file));
 		}
 
-		public void CommitRevision(string author, string comment, DateTime time)
+		public void CommitRevision(Commit commit)
 		{
-			var commitMessageFile = Path.Combine(_gitHelper.GitDir, "IMPORT_COMMIT_MESSAGE");
+			DateTime time = commit.At;
+			string author = commit.Author;
 
+			List<string> commentParts = commit.Labels.Select(l => l.Key)
+				.Select(l => l.StartsWith("(") && l.EndsWith(")") ? l : "{" + l + "}").ToList();
+			if (!string.IsNullOrEmpty(commit.Comment))
+				commentParts.Add(commit.Comment);
+			int count = commit.Files.Count();
+			string s = count == 1 ? "" : "s";
+			commentParts.Add($"({count} file{s})");
+			int pos = author.IndexOf('<');
+			commentParts.Add(pos < 0 ? author : author.Substring(0, pos).Trim());
+			string comment = string.Join(" ", commentParts);
+			//Console.WriteLine(comment);
+
+			string commitMessageFile = Path.Combine(_gitHelper.GitDir, "IMPORT_COMMIT_MESSAGE");
 			File.WriteAllText(commitMessageFile, comment);
 
-			if(author.IndexOf('<') == -1 || author.IndexOf('>') == -1)
+			if (author.IndexOf('<') == -1 || author.IndexOf('>') == -1)
 			{
-				var authorName = author;
-				var authorEmail = author;
+				string authorName = author;
+				string authorEmail = author;
 
 				// strip @ from name
 				if (authorName.IndexOf('@') != -1)
@@ -88,6 +103,22 @@ namespace VssSvnConverter.Core
 			var cmd = string.Format("commit --all --file=\"{0}\" --allow-empty-message --author=\"{1}\" --date={2}", commitMessageFile, author, time.ToString("o"));
 
 			_gitHelper.ExecCommit(cmd);
+
+			foreach (string label in commit.Labels.Keys)
+			{
+				string tag = Commit.MakeTag(label);
+				try
+				{
+					_gitHelper.ExecCommit($"tag \"{tag}\"");
+				}
+				catch (Exception e)
+				{
+					Console.WriteLine($"Importing commit {commit.At:yyyy-MM-dd HH:ss:mm} by {commit.Author}");
+					Console.WriteLine($"Error adding tag '{tag}' (for label '{label}'):\n" + e.Message);
+					_gitHelper.ExecCommit("reset --hard HEAD^1");
+					throw;
+				}
+			}
 		}
 
 		public static void Create(string gitExe, string repoDir)

@@ -100,12 +100,12 @@ namespace VssSvnConverter.Core
 			}
 		}
 
-		public void CommitRevision(string author, string comment, DateTime time)
+		public void CommitRevision(Commit commit)
 		{
 			using (var svn = new SvnClient())
 			{
 				// commit
-				var commitArgs = new SvnCommitArgs { LogMessage = "author: " + author + "\n" + comment };
+				var commitArgs = new SvnCommitArgs { LogMessage = "author: " + commit.Author + "\n" + commit.Comment };
 
 				SvnCommitResult cr;
 				svn.Commit(_wc, commitArgs, out cr);
@@ -120,9 +120,9 @@ namespace VssSvnConverter.Core
 				{
 					var revision = new SvnRevision(cr.Revision);
 
-					svn.SetRevisionProperty(_svnUri, revision, "svn:author", author);
-					svn.SetRevisionProperty(_svnUri, revision, "svn:log", comment);
-					svn.SetRevisionProperty(_svnUri, revision, "svn:date", time.ToString("o"));
+					svn.SetRevisionProperty(_svnUri, revision, "svn:author", commit.Author);
+					svn.SetRevisionProperty(_svnUri, revision, "svn:log", commit.Comment);
+					svn.SetRevisionProperty(_svnUri, revision, "svn:date", commit.At.ToString("o"));
 				}
 				catch (Exception ex)
 				{

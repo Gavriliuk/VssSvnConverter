@@ -15,7 +15,7 @@ namespace VssSvnConverter
 				{
 					if (noPrompt || MessageBox.Show("Repository and work tree will be recreated", "Confirm", MessageBoxButtons.OKCancel) == DialogResult.OK)
 					{
-						File.WriteAllText(Importer.DataFileName, "0\n");
+						File.Delete(Importer.DataFileName);
 						GitDriver.Create(opts.GitExe, opts.GitRepoDir);
 					}
 				}

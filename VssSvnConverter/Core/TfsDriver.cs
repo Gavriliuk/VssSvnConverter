@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Mail;
 using System.Text;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 
 namespace VssSvnConverter.Core
 {
@@ -122,25 +123,25 @@ namespace VssSvnConverter.Core
 			Exec(string.Format("undo /recursive \"{0}\" /noprompt", file));
 		}
 
-		public void CommitRevision(string author, string comment, DateTime time)
+		public void CommitRevision(Commit commit)
 		{
 			var sb = new StringBuilder("checkin /bypass /force /noprompt /recursive");
-			if (!string.IsNullOrWhiteSpace(author))
+			if (!string.IsNullOrWhiteSpace(commit.Author))
 			{
 				try
 				{
-					var ma = new MailAddress(author);
+					var ma = new MailAddress(commit.Author);
 					sb.AppendFormat(" /author:\"{0}\"", ma.DisplayName);
 				}
 				catch
 				{
-					sb.AppendFormat(" /author:\"{0}\"", author);
+					sb.AppendFormat(" /author:\"{0}\"", commit.Author);
 				}
 			}
 
-			if(!string.IsNullOrWhiteSpace(comment))
+			if (!string.IsNullOrWhiteSpace(commit.Comment))
 			{
-				File.WriteAllText(_commitMessageFile, comment);
+				File.WriteAllText(_commitMessageFile, commit.Comment);
 				sb.AppendFormat(" /comment:@\"{0}\"", _commitMessageFile);
 			}
 
