@@ -130,19 +130,19 @@ namespace VssSvnConverter
 
 					wr.WriteLine($"{c.At.Ticks} {c.At:yyyy-MM-dd HH:mm:ss} {c.Author}");
 					var comment = string.Join("\n", c.Comment.Split('\n').Select(x => "\t" + x)).Trim();
-					if(!string.IsNullOrWhiteSpace(comment))
+					if (!string.IsNullOrWhiteSpace(comment))
 						wr.WriteLine("\t" + comment);
 				}
 			}
 
 			Console.WriteLine("{0} commits produced.", commits.Count);
 
-			if(_notMappedAuthors.Count > 0)
+			if (_notMappedAuthors.Count > 0)
 			{
 				Console.WriteLine("Not mapped users:");
 				_notMappedAuthors.ToList().ForEach(u => Console.WriteLine($"{u} = ?"));
 
-				if(_opts.UserMappingStrict)
+				if (_opts.UserMappingStrict)
 				{
 					throw new ApplicationException("Stop execution.");
 				}
@@ -159,14 +159,15 @@ namespace VssSvnConverter
 				if (Program.Exit)
 					throw new Stop();
 
-				if (mapping.TryGetValue(rev.User.ToLowerInvariant(), out string author))
+				var user = rev.User.ToLowerInvariant();
+				if (mapping.TryGetValue(user, out string author))
 				{
 					rev.OriginalUserId = rev.UserId;
 					rev.User = author;
 				}
 				else
 				{
-					_notMappedAuthors.Add(rev.User.ToLowerInvariant());
+					_notMappedAuthors.Add(user);
 				}
 			}
 		}

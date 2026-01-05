@@ -37,7 +37,7 @@ namespace VssSvnConverter
 			for (var i = 0; i < commits.Count; i++)
 			{
 				if(commits[i].Author.Contains("  "))
-					throw new Exception("Author name should not has 2 spaces in row");
+					throw new Exception("Author name should not have 2 spaces in row");
 
 				try
 				{

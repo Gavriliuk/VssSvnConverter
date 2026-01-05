@@ -1,8 +1,9 @@
-﻿using System;
+﻿using SourceSafeTypeLib;
+using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.Diagnostics;
 using System.IO;
-using SourceSafeTypeLib;
+using System.Linq;
 using vsslib;
 using VssSvnConverter.Core;
 
@@ -37,6 +38,9 @@ namespace VssSvnConverter
 					rootTypes.WriteLine("{0}	{1}", rootItem.Spec, rootItem.Type == 0 ? "d" : "f");
 
 					WalkItem(rootItem);
+					if (_files.Count % 1000 != 0)
+						Console.Write($"\rAdded {_files.Count} files");
+					Console.WriteLine("");
 					if (Program.Exit)
 						throw new Stop();
 				}
@@ -182,6 +186,8 @@ namespace VssSvnConverter
 			if(item.Type == 1)
 			{
 				_files.Add(Tuple.Create(item.Spec, item.Size));
+				if (_files.Count % 1000 == 0)
+					Console.Write($"\rAdded {_files.Count} files");
 			}
 			else
 			{
