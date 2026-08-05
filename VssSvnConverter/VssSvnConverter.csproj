@@ -100,9 +100,7 @@
     <None Include="packages.config">
       <SubType>Designer</SubType>
     </None>
-    <None Include="VssSvnConverter.conf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
+    <None Include="VssSvnConverter.conf" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\refresh-small.png" />
