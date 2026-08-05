@@ -16,6 +16,7 @@ namespace VssSvnConverter
 	{
 		static Options _opts;
 		static bool _exit;
+		static bool _ask = true;
 
 		public static bool Exit => _exit;
 
@@ -25,6 +26,7 @@ namespace VssSvnConverter
 
 			Application.ApplicationExit += new EventHandler((object sender, EventArgs e) => { _exit = true; });
 
+			Int32 exitCode = 0;
 			try
 			{
 				if (args.Length == 0)
@@ -63,30 +65,31 @@ namespace VssSvnConverter
 					return -1;
 				}
 
+				if (verbs.Count > 1)
+				{
+					Console.WriteLine("Stages: " + string.Join(", ", verbs) + "\n");
+				}
+
 				verbs.ForEach(x => ProcessStage(x, true));
 			}
 			catch (ApplicationException ex)
 			{
 				Console.Error.WriteLine(ex.Message);
-				if (_opts.Ask)
-				{
-					Console.WriteLine("Press any key...");
-					Console.ReadKey();
-				}
-				return 1;
+				exitCode = 1;
 			}
 			catch (Exception ex)
 			{
 				Console.Error.WriteLine(ex.ToString());
-				if (_opts.Ask)
-				{
-					Console.WriteLine("Press any key...");
-					Console.ReadKey();
-				}
-				return 1;
+				exitCode = 1;
 			}
 
-			return 0;
+			if (_ask && !_opts.Ask || exitCode != 0)
+			{
+				Console.WriteLine("\nPress any key...");
+				Console.ReadKey();
+			}
+
+			return exitCode;
 		}
 
 		public static string GetConfigPath()
@@ -96,7 +99,7 @@ namespace VssSvnConverter
 
 		public static void ProcessStage(string verb, bool noPrompt, Action<float> progress = null)
 		{
-			Console.WriteLine("*** Stage: " + verb + " ***");
+			Console.WriteLine("*** Stage: " + verb + " ***\n");
 
 			// read config
 			_opts.ReadConfig(GetConfigPath());
@@ -108,6 +111,7 @@ namespace VssSvnConverter
 					break;
 
 				case "ui":
+					_ask = false;
 					Application.EnableVisualStyles();
 					Application.SetCompatibleTextRenderingDefault(false);
 					Application.Run(new SimpleUI());
@@ -213,13 +217,13 @@ namespace VssSvnConverter
 					throw new ApplicationException("Unknown stage: " + verb);
 			}
 
-			Console.WriteLine("");
-
 			if (_opts.Ask)
 			{
-				Console.WriteLine("Press any key...");
+				Console.WriteLine("\nPress any key...");
 				Console.ReadKey();
 			}
+
+			Console.WriteLine("");
 		}
 
 		private static void ShowHelp(string unkVerb = null)
