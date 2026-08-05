@@ -41,7 +41,7 @@ namespace VssSvnConverter
 			StopImport = false;
 			DogWatch = DateTimeOffset.Now;
 
-			if(startNewSession && File.Exists(DataFileName))
+			if (startNewSession && File.Exists(DataFileName))
 				File.Delete(DataFileName);
 
 			_opts = opts;
@@ -93,7 +93,7 @@ namespace VssSvnConverter
 			stopWatch.Start();
 
 			using (_cache = new VssFileCache(opts.CacheDir, _opts.SourceSafeIni))
-			using(var log = File.CreateText(LogFileName))
+			using (var log = File.CreateText(LogFileName))
 			{
 				log.AutoFlush = true;
 
@@ -201,7 +201,7 @@ namespace VssSvnConverter
 					if (encodingStr != null)
 					{
 						int codePage;
-						if(int.TryParse(encodingStr, out codePage))
+						if (int.TryParse(encodingStr, out codePage))
 							encoding = Encoding.GetEncoding(codePage);
 						else if (encodingStr == "utf-8-no-bom")
 							encoding = new UTF8Encoding(false);
@@ -246,7 +246,7 @@ namespace VssSvnConverter
 			foreach (var file in commit.Files)
 			{
 				var filePath = _cache.GetFilePath(file.FileSpec, file.VssVersion);
-				if(filePath == null)
+				if (filePath == null)
 				{
 					Debugger.Break();
 					log.WriteLine("File {0}@{1} absent in cache. Rerun 'VssSvnConverter build-cache'", file.FileSpec, file.VssVersion);
@@ -275,24 +275,24 @@ namespace VssSvnConverter
 
 				var dstDir = Path.GetDirectoryName(dstPath);
 				Debug.Assert(dstDir != null);
-				if(!Directory.Exists(dstDir))
+				if (!Directory.Exists(dstDir))
 					driver.AddDirectory(dstDir);
 
 				var addToVcs = !File.Exists(dstPath);
 
-				if(File.Exists(dstPath))
+				if (File.Exists(dstPath))
 				{
 					File.Delete(dstPath);
 					log.WriteLine("Deleted: {0}", dstPath);
 				}
 
-				if(_useHardLink)
+				if (_useHardLink)
 				{
 					_useHardLink = CreateHardLink(dstPath, filePath, IntPtr.Zero);
 					log.WriteLine("CreateHl: {0} -> {1} result: {2}", filePath, dstPath, _useHardLink);
 				}
 
-				if(!_useHardLink)
+				if (!_useHardLink)
 				{
 					File.Copy(filePath, dstPath, true);
 					log.WriteLine("Copy: {0} -> {1}", filePath, dstPath);
@@ -301,7 +301,7 @@ namespace VssSvnConverter
 				// git can not detect modifications if MTime not updated
 				File.SetLastWriteTimeUtc(filePath, DateTime.UtcNow);
 
-				if(addToVcs)
+				if (addToVcs)
 					added.Add(dstPath);
 
 				// file can be modified in place if it is not hardlink
@@ -329,7 +329,7 @@ namespace VssSvnConverter
 					RevertUnimportant(driver, dstPath, relPath, prepareForModifyInplace);
 			}
 
-			if(added.Count > 0)
+			if (added.Count > 0)
 				driver.AddFiles(added.ToArray());
 		}
 

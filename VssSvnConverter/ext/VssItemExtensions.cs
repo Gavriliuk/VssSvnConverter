@@ -26,14 +26,14 @@ namespace vsslib
 					var parts = child.Spec.TrimEnd('/').Split('/');
 					var lastPart = parts[parts.Length - 1];
 
-					if(String.Compare(pathPart, lastPart, StringComparison.OrdinalIgnoreCase) == 0)
+					if (String.Compare(pathPart, lastPart, StringComparison.OrdinalIgnoreCase) == 0)
 					{
 						next = child;
 						break;
 					}
 				}
 
-				if(next == null)
+				if (next == null)
 					throw new ApplicationException("Can't normalize: " + item.Spec);
 
 				current = next;

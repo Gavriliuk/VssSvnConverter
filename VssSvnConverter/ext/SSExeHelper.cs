@@ -23,7 +23,7 @@ namespace vsslib
 		public string Get(string spec, int version, string dstDir)
 		{
 			var dstFile = Path.Combine(dstDir, Path.GetFileName(spec));
-			if(File.Exists(dstFile))
+			if (File.Exists(dstFile))
 				File.Delete(dstFile);
 
 			var args = string.Format("get \"{0}\" -V{1} -I- -W -GWR -GF- -GL\"{2}\"", spec, version, dstDir);

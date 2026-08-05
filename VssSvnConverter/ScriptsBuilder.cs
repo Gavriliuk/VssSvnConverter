@@ -14,11 +14,11 @@ namespace VssSvnConverter
 	{
 		public void Build(Options opts, IList<Tuple<string, int>> importSpecs, Dictionary<string, bool> roots)
 		{
-			if(!Directory.Exists("scripts"))
+			if (!Directory.Exists("scripts"))
 				Directory.CreateDirectory("scripts");
 
-			using(var swRmLocal = File.CreateText("scripts\\remove-local.bat"))
-			using(var swRmVss = File.CreateText("scripts\\remove-vss.bat"))
+			using (var swRmLocal = File.CreateText("scripts\\remove-local.bat"))
+			using (var swRmVss = File.CreateText("scripts\\remove-vss.bat"))
 			{
 				swRmVss.WriteLine("set PATH=%PATH%;C:\\Program Files (x86)\\Microsoft Visual SourceSafe");
 
@@ -32,7 +32,7 @@ namespace VssSvnConverter
 				{
 					swRmVss.WriteLine("ss.exe DELETE \"{0}\"", kvp.Key);
 
-					if(kvp.Value)
+					if (kvp.Value)
 						swRmLocal.WriteLine("rd /S /Q \"{0}\"", kvp.Key.TrimStart("$/\\".ToCharArray()).Replace('/', '\\').TrimEnd('\\'));
 					else
 						swRmLocal.WriteLine("del /F \"{0}\"", kvp.Key.TrimStart("$/\\".ToCharArray()).Replace('/', '\\'));
@@ -40,7 +40,7 @@ namespace VssSvnConverter
 			}
 
 			// generate script for update links information + new links.db file
-			using(var sw = File.CreateText("scripts\\apply-link-tokens.bat"))
+			using (var sw = File.CreateText("scripts\\apply-link-tokens.bat"))
 			{
 				var file2Token = new XRefMap();
 				var linksDb = opts.Config["links-db-latest"].FirstOrDefault();
@@ -77,7 +77,7 @@ namespace VssSvnConverter
 					}
 					finally
 					{
-						if(disp != null)
+						if (disp != null)
 							disp.Dispose();
 					}
 				}
@@ -106,7 +106,7 @@ namespace VssSvnConverter
 					string token = null;
 					foreach (var link in links)
 					{
-						if(file2Token.Map.ContainsKey(link))
+						if (file2Token.Map.ContainsKey(link))
 						{
 							token = file2Token.Map[link][0];
 							break;
@@ -114,10 +114,10 @@ namespace VssSvnConverter
 					}
 
 					// Build new token
-					if(token == null)
+					if (token == null)
 					{
 						token = Path.GetFileName(importedLink).ToLowerInvariant();
-						if(token2Files.Map.ContainsKey(token))
+						if (token2Files.Map.ContainsKey(token))
 							token = token + "!" + DateTimeOffset.UtcNow.Ticks;
 
 						Debug.Assert(token2Files.Map.ContainsKey(token) == false);
@@ -146,7 +146,7 @@ namespace VssSvnConverter
 				foreach (var imported in importSpecs.Select(t => t.Item1).Where(i => !importedSet.Contains(i)))
 				{
 					List<string> files;
-					if(!file2Token.Map.TryGetValue(imported, out files))
+					if (!file2Token.Map.TryGetValue(imported, out files))
 						continue;
 
 					var token = files[0];

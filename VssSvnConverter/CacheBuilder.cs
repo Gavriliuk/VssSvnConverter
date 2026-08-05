@@ -167,7 +167,7 @@ namespace VssSvnConverter
 			_db = _options.DB.Value;
 			var originalVersions = versions.ToList();
 
-			using(_cache = new VssFileCache(_options.CacheDir, _db.SrcSafeIni))
+			using (_cache = new VssFileCache(_options.CacheDir, _db.SrcSafeIni))
 			{
 				// filterout cached versions
 				if (!_options.Force)
@@ -355,7 +355,7 @@ namespace VssSvnConverter
 								file.Comment += commentPlus;
 							}
 
-							wr.WriteLine("Ver:{0}	Spec:{1}	Phys:{2}	Author:{3}	At:{4}	DT:{5}	Comment:{6}",
+							wr.WriteLine("Ver:{0}\tSpec:{1}\tPhys:{2}\tAuthor:{3}\tAt:{4}\tDT:{5}\tComment:{6}",
 								file.VssVersion,
 								file.FileSpec,
 								file.Physical,
@@ -425,7 +425,7 @@ namespace VssSvnConverter
 				{
 					vssItem.Get(path, (int)VSSFlags.VSSFLAG_FORCEDIRNO | (int)VSSFlags.VSSFLAG_USERRONO | (int)VSSFlags.VSSFLAG_REPREPLACE);
 				}
-				catch(Exception ex)
+				catch (Exception ex)
 				{
 					if (string.IsNullOrWhiteSpace(_options.SSPath))
 						throw;
@@ -449,17 +449,17 @@ namespace VssSvnConverter
 				}
 
 				// in force mode check if file already in cache and coincidence by hash
-				if(_options.Force)
+				if (_options.Force)
 				{
 					var ce = _cache.GetFileInfo(fr.FileSpec, fr.VssVersion);
-					if(ce != null)
+					if (ce != null)
 					{
 						string hash;
 
-						using(var s = new FileStream(path, FileMode.Open, FileAccess.Read))
+						using (var s = new FileStream(path, FileMode.Open, FileAccess.Read))
 							hash = Convert.ToBase64String(_hashAlgo.ComputeHash(s));
 
-						if(hash != ce.Sha1Hash)
+						if (hash != ce.Sha1Hash)
 						{
 							_log.WriteLine("!!! Cache contains different content for: " + fr.FileSpec);
 							_log.WriteLine("{0} != {1}", hash, ce.Sha1Hash);
@@ -502,7 +502,7 @@ namespace VssSvnConverter
 		{
 			_log.WriteLine("UNRECOGNIZED ERROR: {0}", file.FileSpec);
 			Console.Error.WriteLine("\n!!! Unrecognized error. See logs.\n{0}@{1}", file.FileSpec, file.VssVersion);
-			if(ex != null)
+			if (ex != null)
 			{
 				_log.WriteLine(ex.ToString());
 				Console.Error.WriteLine(" ERROR: {0}", ex.Message);

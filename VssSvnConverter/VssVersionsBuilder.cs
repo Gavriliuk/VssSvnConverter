@@ -221,7 +221,8 @@ namespace VssSvnConverter
 					}
 					findex++;
 
-					try{
+					try
+					{
 						IVSSItem item = db.VSSItem[spec];
 						int head = item.VersionNumber;
 
@@ -356,7 +357,7 @@ namespace VssSvnConverter
 		{
 			foreach (var rev in r)
 			{
-				wr.WriteLine("Ver:{0}	Spec:{1}	Phys:{2}	Author:{3}	At:{4}	DT:{5}	Comment:{6}",
+				wr.WriteLine("Ver:{0}\tSpec:{1}\tPhys:{2}\tAuthor:{3}\tAt:{4}\tDT:{5}\tComment:{6}",
 					rev.VssVersion, rev.FileSpec, rev.Physical, rev.User, rev.At.Ticks, rev.At,
 					rev.Comment.Replace("\r\n", "\n").Replace('\r', '\n').Replace('\n', '\u0001'));
 			}

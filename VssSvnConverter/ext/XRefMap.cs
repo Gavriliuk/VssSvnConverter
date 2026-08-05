@@ -21,7 +21,7 @@ namespace vcslib
 		public void AddRef(string key, string value)
 		{
 			List<string> list;
-			if(!Map.TryGetValue(key, out list))
+			if (!Map.TryGetValue(key, out list))
 			{
 				list = new List<string>();
 				Map[key] = list;
@@ -32,7 +32,7 @@ namespace vcslib
 		public List<string> GetRefs(string key, bool nullIfEmpty = false)
 		{
 			List<string> list;
-			if(!Map.TryGetValue(key, out list))
+			if (!Map.TryGetValue(key, out list))
 				return nullIfEmpty ? null : _empty;
 
 			return list;
@@ -58,17 +58,17 @@ namespace vcslib
 				foreach (var kvp in Map)
 				{
 					sw.Write(kvp.Key);
-					if(wrapLines)
+					if (wrapLines)
 						sw.WriteLine();
 					
 					foreach (var xref in kvp.Value)
 					{
 						sw.Write("\t{0}", xref);
-						if(wrapLines)
+						if (wrapLines)
 							sw.WriteLine();
 					}
 
-					if(!wrapLines)
+					if (!wrapLines)
 						sw.WriteLine();
 				}
 			}
@@ -95,9 +95,9 @@ namespace vcslib
 			string key = null;
 			foreach(var line in File.ReadLines(file).Select(l => l.TrimEnd()).Where(l => !string.IsNullOrWhiteSpace(l)))
 			{
-				if(line.StartsWith("\t"))
+				if (line.StartsWith("\t"))
 				{
-					if(key == null)
+					if (key == null)
 						throw new ApplicationException("Incorrect map storage file");
 
 					AddRef(key, line.Substring(1));
@@ -123,7 +123,7 @@ namespace vcslib
 			{
 				var ar = line.Split('\t');
 				
-				if(ar.Length != 2)
+				if (ar.Length != 2)
 					throw new ApplicationException("Incorrect token map storage file");
 
 				AddRef(ar[0], ar[1]);

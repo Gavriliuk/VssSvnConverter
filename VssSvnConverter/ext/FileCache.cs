@@ -80,7 +80,7 @@ namespace vcslib
 
 				for (var i = 0; i < arr.Length; i++)
 				{
-					if(arr[i] == "")
+					if (arr[i] == "")
 						arr[i] = null;
 				}
 
@@ -102,7 +102,7 @@ namespace vcslib
 
 		static void AddCacheEntry(StreamWriter sw, CacheEntry ce)
 		{
-			sw.WriteLine("{0}	{1}	{2}	{3}", ce.Key, ce.ContentPath, ce.Sha1Hash, ce.Notes);
+			sw.WriteLine("{0}\t{1}\t{2}\t{3}", ce.Key, ce.ContentPath, ce.Sha1Hash, ce.Notes);
 		}
 
 		public IEnumerable<CacheEntry> AllEntries()
@@ -126,7 +126,7 @@ namespace vcslib
 			}
 
 			// rewrite index
-			using(var sw = new StreamWriter(new FileStream(newIndexFile, FileMode.Create, FileAccess.Write, FileShare.Read), Encoding.UTF8))
+			using (var sw = new StreamWriter(new FileStream(newIndexFile, FileMode.Create, FileAccess.Write, FileShare.Read), Encoding.UTF8))
 			{
 				foreach (var cacheEntry in _cacheIndex.Values)
 				{
@@ -159,9 +159,9 @@ namespace vcslib
 			lock(this)
 			{
 				// AutoCalcHash hash if need
-				if(hash == null && AutoCalcHash && path != null)
+				if (hash == null && AutoCalcHash && path != null)
 				{
-					if(_hashAlgo == null)
+					if (_hashAlgo == null)
 						_hashAlgo = new SHA1Managed();
 
 					using (var s = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -173,7 +173,7 @@ namespace vcslib
 				string oldDataPath = null;
 
 				CacheEntry ce;
-				if(_cacheIndex.TryGetValue(key, out ce))
+				if (_cacheIndex.TryGetValue(key, out ce))
 				{
 					// remove after adding new entry for same key
 					oldDataPath = ce.ContentPath;
@@ -181,14 +181,14 @@ namespace vcslib
 
 				var store = Path.Combine(_cacheBaseDir, (_indexEntriesCount / 1000).ToString(CultureInfo.InvariantCulture));
 
-				if(!Directory.Exists(store))
+				if (!Directory.Exists(store))
 					Directory.CreateDirectory(store);
 
 				var filePath = Path.Combine(store, string.Format("{0}-{1}", _indexEntriesCount, Path.GetFileName(path)));
 
 				ce = new CacheEntry(key, filePath, hash, notes);
 
-				if(copy)
+				if (copy)
 				{
 					File.Copy(path, filePath, true);
 				}
@@ -204,7 +204,7 @@ namespace vcslib
 
 				WriteIndexEntry(ce);
 
-				if(oldDataPath != null && File.Exists(oldDataPath))
+				if (oldDataPath != null && File.Exists(oldDataPath))
 					File.Delete(oldDataPath);
 			}
 		}

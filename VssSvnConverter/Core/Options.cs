@@ -85,7 +85,7 @@ namespace VssSvnConverter.Core
 			Prefix = args.Where(a => a.StartsWith("--prefix=")).Select(a => a.Substring("--prefix=".Length)).FirstOrDefault();
 
 			var filterRx = args.Where(a => a.StartsWith("--filter=")).Select(a => a.Substring("--filter=".Length)).FirstOrDefault();
-			if(filterRx != null)
+			if (filterRx != null)
 				FilterRx = new Regex(filterRx, RegexOptions.IgnoreCase);
 		}
 
@@ -97,7 +97,7 @@ namespace VssSvnConverter.Core
 				.Where(l => !l.StartsWith("#"))
 				.Select(l => {
 					var pos = l.IndexOf('=');
-					if(pos == -1)
+					if (pos == -1)
 					{
 						Console.WriteLine("Wrong line in config: {0}", l);
 						Environment.Exit(-1);

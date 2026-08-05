@@ -17,7 +17,7 @@ namespace VssSvnConverter.Core
 			_log = log;
 			_wc = workingCopy;
 
-			if(!Directory.Exists(_wc))
+			if (!Directory.Exists(_wc))
 				throw new ApplicationException("Working copy does not exists: " + _wc);
 
 			if (!Directory.Exists(Path.Combine(_wc, ".svn")))

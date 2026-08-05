@@ -152,7 +152,7 @@ namespace VssSvnConverter.Core
 		{
 			var r = _gitHelper.Exec("status --porcelain");
 
-			if(r.StdOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries).Length > 0)
+			if (r.StdOut.Split("\r\n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries).Length > 0)
 				throw new ApplicationException("Working tree does should be clean. Status say:\n" + r.StdOut);
 
 			r.ForStdError(s => { throw new ApplicationException("Status say in stderr:\n" + s); });

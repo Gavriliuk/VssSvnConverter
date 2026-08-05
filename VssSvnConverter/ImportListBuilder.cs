@@ -25,7 +25,7 @@ namespace VssSvnConverter
 		{
 			_files = new List<Tuple<string, int>>();
 
-			using(var rootTypes = File.CreateText(DataFileRootTypes))
+			using (var rootTypes = File.CreateText(DataFileRootTypes))
 			{
 				rootTypes.AutoFlush = true;
 
@@ -132,7 +132,7 @@ namespace VssSvnConverter
 					.Select(t => new { Ext = (Path.GetExtension(t.Item1) ?? "").ToLowerInvariant(), Size = t.Item2 })
 					.GroupBy(x => x.Ext)
 					.OrderBy(g => g.Sum(f => f.Size))
-					//					.OrderBy(g => g.Key)
+					//.OrderBy(g => g.Key)
 					.ToList()
 					.ForEach(g => map.WriteLine("{0,-9}: Count: {1,5}, Size: {2,10:0.00} Kb, Avg size: {3,7:0.00} Kb", g.Key, g.Count(), g.Sum(f => f.Size) / 1024.0, g.Sum(f => f.Size) / 1024.0 / g.Count()))
 				;
@@ -183,7 +183,7 @@ namespace VssSvnConverter
 
 		void WalkItem(IVSSItem item)
 		{
-			if(item.Type == 1)
+			if (item.Type == 1)
 			{
 				_files.Add(Tuple.Create(item.Spec, item.Size));
 				if (_files.Count % 1000 == 0)

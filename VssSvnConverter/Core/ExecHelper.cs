@@ -113,7 +113,7 @@ namespace VssSvnConverter.Core
 			Process p = null;
 
 			IDisposable cancellationRegistration = null;
-			if(ct.CanBeCanceled)
+			if (ct.CanBeCanceled)
 			{
 				cancellationRegistration = ct.Register(() => {
 					p.Kill();

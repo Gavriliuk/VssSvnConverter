@@ -1,6 +1,6 @@
 using System;
-using System.Linq;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Windows.Forms;
 using VssSvnConverter.Core;
@@ -32,7 +32,7 @@ namespace VssSvnConverter
 					args = new [] { "ui" };
 				}
 
-				if(args.Any(a => a.StartsWith("/help")) || args.Any(a => a.StartsWith("-h")) || args.Any(a => a.StartsWith("--help")))
+				if (args.Any(a => a.StartsWith("/help")) || args.Any(a => a.StartsWith("-h")) || args.Any(a => a.StartsWith("--help")))
 				{
 					ShowHelp();
 					return -1;
@@ -42,7 +42,7 @@ namespace VssSvnConverter
 					.Where(a => !a.StartsWith("-"))
 					.Select(a => a.ToLowerInvariant())
 					.SelectMany(a => {
-						if(a== "all")
+						if (a== "all")
 							return new[] { "build-list", "build-list-stats", "build-versions", "build-links", "build-cache", "build-commits", "build-wc", "import", "build-scripts" };
 
 						return Enumerable.Repeat(a, 1);
@@ -50,14 +50,14 @@ namespace VssSvnConverter
 					.ToList()
 				;
 
-				if(verbs.Count == 0)
+				if (verbs.Count == 0)
 				{
 					ShowHelp();
 					return -1;
 				}
 
 				var unkVerb = verbs.FirstOrDefault(v => v != "ui" && v != "build-list" && v != "build-list-stats" && v != "build-versions" && v != "build-links" && v != "build-cache" && v != "build-commits" && v != "build-wc" && v != "import" && v != "import-new" && v != "git-fast-import" && v != "build-scripts");
-				if(unkVerb != null)
+				if (unkVerb != null)
 				{
 					ShowHelp(unkVerb);
 					return -1;
@@ -65,7 +65,7 @@ namespace VssSvnConverter
 
 				verbs.ForEach(x => ProcessStage(x, true));
 			}
-			catch(ApplicationException ex)
+			catch (ApplicationException ex)
 			{
 				Console.Error.WriteLine(ex.Message);
 				if (_opts.Ask)
@@ -75,7 +75,7 @@ namespace VssSvnConverter
 				}
 				return 1;
 			}
-			catch(Exception ex)
+			catch (Exception ex)
 			{
 				Console.Error.WriteLine(ex.ToString());
 				if (_opts.Ask)
@@ -211,7 +211,7 @@ namespace VssSvnConverter
 
 			Console.WriteLine("");
 
-			if(_opts.Ask)
+			if (_opts.Ask)
 			{
 				Console.WriteLine("Press any key...");
 				Console.ReadKey();
@@ -220,7 +220,7 @@ namespace VssSvnConverter
 
 		private static void ShowHelp(string unkVerb = null)
 		{
-			if(unkVerb != null)
+			if (unkVerb != null)
 				Console.WriteLine("Unknown verb: {0}\n", unkVerb);
 
 			Console.WriteLine(@"Usage: VssSvnConvert stage [options]

@@ -41,7 +41,7 @@ namespace VssSvnConverter
 
 						var coDate = vssCheckout.Date.Date;
 						List<Tuple<string, string>> list;
-						if(!coDict.TryGetValue(coDate, out list))
+						if (!coDict.TryGetValue(coDate, out list))
 						{
 							list = new List<Tuple<string, string>>();
 							coDict[coDate] = list;

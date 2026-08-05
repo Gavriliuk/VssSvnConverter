@@ -35,7 +35,7 @@ namespace VssSvnConverter.Core
 			//var tfDir = Path.Combine(_opts.TfsWorkTreeDir, "$tf");
 
 			//if (!Directory.Exists(tfDir))
-			//	throw new ApplicationException("$tf dir was not found: " + tfDir);
+				//throw new ApplicationException("$tf dir was not found: " + tfDir);
 		}
 
 		ExecHelper.ExecResult Exec(string args)
@@ -80,7 +80,7 @@ namespace VssSvnConverter.Core
 
 		void CheckWorkingCopyStatus()
 		{
-			if(!IsWorkingCopyClean(true))
+			if (!IsWorkingCopyClean(true))
 				throw new ApplicationException("Working tree does should be clean");
 		}
 

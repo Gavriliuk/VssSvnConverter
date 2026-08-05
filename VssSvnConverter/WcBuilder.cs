@@ -20,7 +20,7 @@ namespace VssSvnConverter
 					}
 				}
 			}
-			else if(opts.ImportDriver == "tfs")
+			else if (opts.ImportDriver == "tfs")
 			{
 				if (noPrompt || MessageBox.Show("Work tree will be cleanup", "Confirm", MessageBoxButtons.OKCancel) == DialogResult.OK)
 				{

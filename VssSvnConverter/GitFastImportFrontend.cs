@@ -26,17 +26,17 @@ namespace VssSvnConverter
 		{
 			_opts = opts;
 
-			if(opts.Config["unimportant-diff"].Any())
+			if (opts.Config["unimportant-diff"].Any())
 				throw new Exception("git-fast-import builder does not support 'unimportant-diff'");
 
-			if(opts.Config["censore-group"].Any())
+			if (opts.Config["censore-group"].Any())
 				throw new Exception("git-fast-import builder does not support 'censore-group'");
 
 			// check all authors in map
 			var badUsers = new HashSet<string>();
 			for (var i = 0; i < commits.Count; i++)
 			{
-				if(commits[i].Author.Contains("  "))
+				if (commits[i].Author.Contains("  "))
 					throw new Exception("Author name should not have 2 spaces in row");
 
 				try
