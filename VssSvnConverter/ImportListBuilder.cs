@@ -25,39 +25,49 @@ namespace VssSvnConverter
 		{
 			_files = new List<Tuple<string, int>>();
 
+			Program.LogAndConsole($"Writing file '{DataFileRootTypes}' (all VSS roots from config)");
 			using (var rootTypes = File.CreateText(DataFileRootTypes))
 			{
 				rootTypes.AutoFlush = true;
 
 				foreach (var root in opts.Config["import-root"])
 				{
-					Console.WriteLine("VSS Root: {0}", root);
+					Program.LogAndConsole($"VSS Root: {root}");
 
 					var rootItem = opts.DB.Value.VSSItem[root].Normalize(opts.DB.Value);
 
-					rootTypes.WriteLine("{0}	{1}", rootItem.Spec, rootItem.Type == 0 ? "d" : "f");
+					rootTypes.WriteLine($"{rootItem.Spec}\t{ (rootItem.Type == 0 ? "d" : "f") }");
 
 					WalkItem(rootItem);
 					if (_files.Count % 1000 != 0)
-						Console.Write($"\rAdded {_files.Count} files");
-					Console.WriteLine("");
+						Program.LogAndConsole($"Found {_files.Count,6} files");
 					if (Program.Exit)
 						throw new Stop();
 				}
-
-				File.WriteAllLines(AllFilesList, _files.Select(t => string.Format("{0}	{1}", t.Item1, t.Item2)).ToArray());
 			}
+			Program.LogAndConsole($"{new FileInfo(DataFileRootTypes).Length} bytes written to file '{DataFileRootTypes}'\n");
 
-			Console.WriteLine("All files: " + AllFilesList);
+			Program.LogAndConsole($"Writing file '{AllFilesList}' (all files from VSS)");
+			File.WriteAllLines(AllFilesList, _files.Select(t => string.Format("{0}\t{1}", t.Item1, t.Item2)).ToArray());
+			Program.LogAndConsole($"{new FileInfo(AllFilesList).Length} bytes written to file '{AllFilesList}'\n");
 
 			FilterFiles(opts);
-
-			Console.WriteLine("Selected files: " + FilesList);
 		}
 
 		static List<Tuple<string, int>> LoadFrom(string path)
 		{
-			return File.ReadAllLines(path).Select(l => Tuple.Create(l.Split('\t')[0], Int32.Parse(l.Split('\t')[1]))).ToList();
+			Program.LogAndConsole($"Reading file '{path}'");
+			var lines = File.ReadAllLines(path);
+			var result = lines.Select(l => 
+			{
+				var ll = l.Split('\t');
+				if (ll.Length != 2 || string.IsNullOrEmpty(ll[0]) || !Int32.TryParse(ll[1], out var size) || size < 0)
+					throw new Exception($"Invalid line: '{l}'");
+				return Tuple.Create(ll[0], size);
+			}
+			).ToList();
+			Program.LogAndConsole($"{lines.Length} lines read from file '{path}'\n", result.Count, path);
+			return result;
 		}
 
 		public List<Tuple<string, int>> Load()
@@ -86,8 +96,14 @@ namespace VssSvnConverter
 			files = files.Where(t => isInclude(t.Item1)).ToList();
 
 			// write included & excluded
-			File.WriteAllLines(FilesList, files.Select(t => string.Format("{0}	{1}", t.Item1, t.Item2)).ToArray());
-			File.WriteAllLines(ExcludedFilesList, excluded.Select(t => string.Format("{0}	{1}", t.Item1, t.Item2)).ToArray());
+
+			Program.LogAndConsole($"Writing file '{FilesList}' (files included to import)");
+			File.WriteAllLines(FilesList, files.Select(t => string.Format("{0}\t{1}", t.Item1, t.Item2)).ToArray());
+			Program.LogAndConsole($"{new FileInfo(FilesList).Length} bytes written to file '{FilesList}'\n");
+
+			Program.LogAndConsole($"Writing file '{ExcludedFilesList}' (files excluded from import)");
+			File.WriteAllLines(ExcludedFilesList, excluded.Select(t => string.Format("{0}\t{1}", t.Item1, t.Item2)).ToArray());
+			Program.LogAndConsole($"{new FileInfo(ExcludedFilesList).Length} bytes written to file '{ExcludedFilesList}'\n");
 
 			// calc stats
 
@@ -110,23 +126,27 @@ namespace VssSvnConverter
 			}
 
 			// build extensions map
-			Console.WriteLine("Files extensions:");
-			files
+			var exts = files
+				.Select(t => Path.GetExtension(t.Item1))
+				.Select(e => e.ToLowerInvariant())
+				.GroupBy(e => e)
+				.Select(g => $"{g.Key}({g.Count()}) ");
+			Program.LogAndConsole("Files extensions: {0}\n", string.Join(" ", exts));
+			/*files
 				.Select(t => Path.GetExtension(t.Item1))
 				.Select(e => e.ToLowerInvariant())
 				.GroupBy(e => e)
 				.ToList()
 				.ForEach(g => Console.Write("{0}({1}) ", g.Key, g.Count()))
-			;
-			Console.WriteLine();
-			Console.WriteLine();
+			;*/
 
 			// dump extensions map
+			Program.LogAndConsole($"Writing file '{DataExtsFileName}' (file stats by extensions)");
 			using (var map = File.CreateText(DataExtsFileName))
 			{
 				// overview
 				map.WriteLine("== Overview ==");
-				map.WriteLine("<all>    : Count: {0,5}, Size: {1,10:0.00} Kb", files.Count, files.Sum(f => (double)f.Item2) / 1024.0);
+				map.WriteLine($"<all>    : Count: {files.Count,5}, Size: {files.Sum(f => (double)f.Item2) / 1024.0,10:0.00} Kb");
 
 				files
 					.Select(t => new { Ext = (Path.GetExtension(t.Item1) ?? "").ToLowerInvariant(), Size = t.Item2 })
@@ -134,7 +154,7 @@ namespace VssSvnConverter
 					.OrderBy(g => g.Sum(f => f.Size))
 					//.OrderBy(g => g.Key)
 					.ToList()
-					.ForEach(g => map.WriteLine("{0,-9}: Count: {1,5}, Size: {2,10:0.00} Kb, Avg size: {3,7:0.00} Kb", g.Key, g.Count(), g.Sum(f => f.Size) / 1024.0, g.Sum(f => f.Size) / 1024.0 / g.Count()))
+					.ForEach(g => map.WriteLine($"{g.Key,-9}: Count: {g.Count(),5}, Size: {g.Sum(f => f.Size) / 1024.0,10:0.00} Kb, Avg size: {g.Sum(f => f.Size) / 1024.0 / g.Count(),7:0.00} Kb"))
 				;
 
 				map.WriteLine();
@@ -149,21 +169,23 @@ namespace VssSvnConverter
 						if (Program.Exit)
 							throw new Stop();
 
-						map.WriteLine("{0}({1}):", g.Key, g.Count());
+						map.WriteLine($"{g.Key,-9}({g.Count(),5}):", g.Key, g.Count());
 
 						foreach (var f in g.OrderByDescending(ff => ff.Item2))
 						{
 							if (Program.Exit)
 								throw new Stop();
 
-							map.WriteLine("{0,10} {1}", f.Item2, f.Item1);
+							map.WriteLine($"{f.Item2,10} {f.Item1}");
 						}
 						map.WriteLine();
 					})
 				;
 			}
+			Program.LogAndConsole($"{new FileInfo(DataExtsFileName).Length} bytes written to file '{DataExtsFileName}'\n");
 
 			// dump files by size
+			Program.LogAndConsole($"Writing file '{DataSizesFileName}' (files ordered by size, descending)");
 			using (var map = File.CreateText(DataSizesFileName))
 			{
 				files
@@ -175,10 +197,11 @@ namespace VssSvnConverter
 						if (Program.Exit)
 							throw new Stop();
 
-						map.WriteLine("{0,10:0.0} KiB	{1}", inf.Size / 1024.0, inf.Spec);
+						map.WriteLine($"{inf.Size / 1024.0,10:0.0} KiB	{inf.Spec}");
 					})
 				;
 			}
+			Program.LogAndConsole($"{new FileInfo(DataSizesFileName).Length} bytes written to file '{DataSizesFileName}'\n");
 		}
 
 		void WalkItem(IVSSItem item)
@@ -187,7 +210,7 @@ namespace VssSvnConverter
 			{
 				_files.Add(Tuple.Create(item.Spec, item.Size));
 				if (_files.Count % 1000 == 0)
-					Console.Write($"\rAdded {_files.Count} files");
+					Program.LogAndConsole($"Found {_files.Count} files");
 			}
 			else
 			{

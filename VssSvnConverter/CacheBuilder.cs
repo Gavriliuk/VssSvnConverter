@@ -79,6 +79,8 @@ namespace VssSvnConverter
 				.ToList()
 			;
 
+			Program.LogAndConsole($"Writing file '{ErrorsFileName}' (errors)");
+			Program.LogAndConsole($"Writing file '{OnlyLastVersionFileName}' (last versions)");
 			using (var cache = new VssFileCache(_options.CacheDir, _options.SourceSafeIni))
 			using (var errLog = File.CreateText(ErrorsFileName))
 			using (var onlyLastVersionsLog = File.CreateText(OnlyLastVersionFileName))
@@ -87,6 +89,7 @@ namespace VssSvnConverter
 				onlyLastVersionsLog.AutoFlush = true;
 
 				// undone list
+				Program.LogAndConsole($"Writing file '{UndoneVersionsCountFileName}' (undone version counts)");
 				using (var log = File.CreateText(UndoneVersionsCountFileName))
 				{
 					var listG = list
@@ -102,9 +105,10 @@ namespace VssSvnConverter
 						if (Program.Exit)
 							throw new Stop();
 
-						log.WriteLine("{0,6} {1}", g.Count, FileRevision.GetFile(g.Id));
+						log.WriteLine($"{g.Count,6} {FileRevision.GetFile(g.Id)}");
 					});
 				}
+				Program.LogAndConsole($"{new FileInfo(UndoneVersionsCountFileName).Length} bytes written to file '{UndoneVersionsCountFileName}'");
 
 				var cached = 0;
 				var errors = 0;
@@ -150,11 +154,12 @@ namespace VssSvnConverter
 					}
 				}
 
-				Console.WriteLine("Cached: {0} (Errors: {1})  Not Cached: {2}", cached, errors, notCached);
-				Console.WriteLine("Only Last Version: {0}", onlyLastVersions);
-				Console.WriteLine("Not Cached: {0:0.00}%", 100.0 * notCached / list.Count);
-				Console.WriteLine();
+				Program.LogAndConsole($"Cached: {cached} (Errors: {errors})  Not Cached: {notCached}");
+				Program.LogAndConsole($"Only Last Version: {onlyLastVersions}");
+				Program.LogAndConsole($"Not Cached: {100.0 * notCached / list.Count:0.00}%");
 			}
+			Program.LogAndConsole($"{new FileInfo(OnlyLastVersionFileName).Length} bytes written to file '{OnlyLastVersionFileName}'");
+			Program.LogAndConsole($"{new FileInfo(ErrorsFileName).Length} bytes written to file '{ErrorsFileName}'\n");
 		}
 
 		public void Build(List<FileRevision> versions, Action<float> progress = null)
@@ -172,7 +177,7 @@ namespace VssSvnConverter
 				// filterout cached versions
 				if (!_options.Force)
 				{
-					Console.WriteLine("Skip already cached versions...");
+					Program.LogAndConsole("Skip already cached versions...");
 
 					var cached = 0;
 					var notRetained = 0;
@@ -205,12 +210,11 @@ namespace VssSvnConverter
 						versions.Add(file);
 					}
 
-					Console.WriteLine("Cached(good): {0}", cached);
-					Console.WriteLine("Cached(errors): {0}", errors);
-					Console.WriteLine("Cached(not retained version): {0}", notRetained);
-					Console.WriteLine("Not Cached: {0}", versions.Count);
+					Program.LogAndConsole($"Cached(good): {cached}");
+					Program.LogAndConsole($"Cached(errors): {errors}");
+					Program.LogAndConsole($"Cached(not retained version): {notRetained}");
+					Program.LogAndConsole($"Not Cached: {versions.Count}\n");
 				}
-				Console.WriteLine();
 
 				// sort versions
 				versions = versions
@@ -222,11 +226,11 @@ namespace VssSvnConverter
 					.ToList()
 				;
 
-				Console.WriteLine("Building version cache to {0}", _options.CacheDir);
-
 				int findex = 0, vindex = 0, lastProgressPrc = 0;
 				bool useLatestOnly = _options.LatestOnly.Any() || _options.LatestOnlyRx.Any();
 
+				Program.LogAndConsole($"Writing file '{LogFileName}' (cached versions log)");
+				Program.LogAndConsole($"Building version cache in '{_options.CacheDir}'");
 				using (_log = File.CreateText(LogFileName))
 				{
 					_log.AutoFlush = true;
@@ -259,7 +263,7 @@ namespace VssSvnConverter
 							vindex++;
 
 							if (vindex % 1000 == 0)
-								Console.WriteLine("Built {0} versions for {1} files ({2}%). Time: {3}", vindex, findex, lastProgressPrc, sw.Elapsed);
+								Program.LogAndConsole($"Built {vindex,8} versions for {findex,6} files ({lastProgressPrc,3}%). Time: {sw.Elapsed}");
 
 							if (useOnce)
 								break;
@@ -268,7 +272,8 @@ namespace VssSvnConverter
 				}
 
 				if (vindex % 1000 != 0)
-					Console.WriteLine("Total built {0} versions for {1} files. Time: {2}", vindex, findex, sw.Elapsed);
+					Program.LogAndConsole($"Total built {vindex,8} versions for {findex,6} files (100%). Time: {sw.Elapsed}");
+				Program.LogAndConsole($"{new FileInfo(LogFileName).Length} bytes written to file '{LogFileName}'\n");
 
 				// build cached versions list
 				BuildCachedVersionsList(originalVersions);
@@ -276,20 +281,18 @@ namespace VssSvnConverter
 
 			sw.Stop();
 
-			Console.WriteLine();
-			Console.WriteLine("Building cache complete. Take {0}", sw.Elapsed);
+			Program.LogAndConsole("Building cache complete. Time: {0}", sw.Elapsed);
 		}
 
 		void BuildCachedVersionsList(List<FileRevision> versions)
 		{
 			var sw = Stopwatch.StartNew();
 
-			Console.WriteLine("Building cached versions to {0}", DataFileName);
-
 			int findex = 0, vindex = 0, lastProgressPrc = 0;
 
 			bool useLatestOnly = _options.LatestOnly.Any() || _options.LatestOnlyRx.Any();
 
+			Program.LogAndConsole($"Writing file '{DataFileName}' (cached versions)");
 			using (StreamWriter wr = File.CreateText(DataFileName))
 			{
 				List<IGrouping<int, FileRevision>> fileGroups = versions.GroupBy(v => v.FileId).ToList();
@@ -383,7 +386,8 @@ namespace VssSvnConverter
 				}
 			}
 
-			Console.WriteLine("Built {0} cached versions for {1} files. Time: {2}", vindex, findex, sw.Elapsed);
+			Program.LogAndConsole($"Built {vindex} cached versions for {findex} files. Time: {sw.Elapsed}");
+			Program.LogAndConsole($"{new FileInfo(DataFileName).Length} bytes written to file '{DataFileName}'\n");
 
 			sw.Stop();
 		}
@@ -405,7 +409,7 @@ namespace VssSvnConverter
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine("\nCan't remove temp file: " + tempFile + "\n" + ex.Message);
+					Program.LogError($"Can't remove temp file '{tempFile}': {ex.Message}");
 				}
 			}
 
@@ -438,12 +442,12 @@ namespace VssSvnConverter
 					if (m.Groups["phys"].Value == vssItem.Physical)
 						throw;
 
-					Console.WriteLine("\nPhysical file mismatch. Try get with ss.exe");
+					Program.LogAndConsole("Physical file mismatch. Try get with ss.exe");
 
 					path = new SSExeHelper(_options.SSPath, _log).Get(fr.FileSpec, fr.VssVersion, _tempDir);
 					if (path == null)
 					{
-						Console.WriteLine("Get with ss.exe failed");
+						Program.LogAndConsole("Get with ss.exe failed");
 						throw;
 					}
 				}
@@ -462,7 +466,7 @@ namespace VssSvnConverter
 						if (hash != ce.Sha1Hash)
 						{
 							_log.WriteLine("!!! Cache contains different content for: " + fr.FileSpec);
-							_log.WriteLine("{0} != {1}", hash, ce.Sha1Hash);
+							_log.WriteLine($"{{0}} != {{1}}", hash, ce.Sha1Hash);
 							_cache.AddFile(fr.FileSpec, fr.VssVersion, path, false);
 						}
 						return;
@@ -474,10 +478,8 @@ namespace VssSvnConverter
 			{
 				if (ex.Message.Contains("does not retain old versions of itself"))
 				{
-					Console.WriteLine("{0} hasn't retain version {1}.", fr.FileSpec, fr.VssVersion);
-
+					Program.LogAndConsole($"{fr.FileSpec} hasn't retain version {fr.VssVersion}.");
 					_cache.AddError(fr.FileSpec, fr.VssVersion, "not-retained");
-
 					return;
 				}
 
@@ -485,10 +487,8 @@ namespace VssSvnConverter
 				// known error
 				if (ex.Message.Contains("SourceSafe was unable to finish writing a file.  Check your available disk space, and ask the administrator to analyze your SourceSafe database."))
 				{
-					Console.Error.WriteLine("\nAbsent file revision: {0}@{1}", fr.FileSpec, fr.VssVersion);
-
+					Program.LogError($"Absent file revision: {fr.FileSpec}@{fr.VssVersion}");
 					_cache.AddError(fr.FileSpec, fr.VssVersion, "broken-revision");
-
 					return;
 				}
 
@@ -500,12 +500,12 @@ namespace VssSvnConverter
 
 		void UnrecognizedError(FileRevision file, Exception ex = null)
 		{
-			_log.WriteLine("UNRECOGNIZED ERROR: {0}", file.FileSpec);
-			Console.Error.WriteLine("\n!!! Unrecognized error. See logs.\n{0}@{1}", file.FileSpec, file.VssVersion);
+			_log.WriteLine($"UNRECOGNIZED ERROR: {file.FileSpec}");
+			Program.LogError($"Unrecognized error. See logs for details: {file.FileSpec}@{file.VssVersion}");
 			if (ex != null)
 			{
 				_log.WriteLine(ex.ToString());
-				Console.Error.WriteLine(" ERROR: {0}", ex.Message);
+				Program.LogError(ex.Message);
 			}
 		}
 

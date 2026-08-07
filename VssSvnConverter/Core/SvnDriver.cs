@@ -112,7 +112,7 @@ namespace VssSvnConverter.Core
 
 				if (cr == null)
 				{
-					Console.WriteLine("	Nothing to commit. Seems this revision was already added or contains only unimportant chnages ?");
+					Program.LogAndConsole("\tNothing to commit. Seems this revision was already added or contains only unimportant chnages ?");
 					return;
 				}
 

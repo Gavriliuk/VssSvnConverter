@@ -41,6 +41,14 @@ namespace vcslib
 
 		public bool AutoCalcHash = true;
 
+		public static int GetEntryCount(string baseDir)
+		{
+			if (!Directory.Exists(baseDir))
+				return 0;
+			int fileCount = System.Linq.Enumerable.Count(Directory.EnumerateFiles(baseDir, "*", SearchOption.AllDirectories));
+			return Math.Max(0, fileCount - 1);
+		}
+
 		public FileCache(string baseDir)
 		{
 			_cacheBaseDir = baseDir;

@@ -70,7 +70,7 @@ namespace VssSvnConverter
 				}
 				catch (Exception ex)
 				{
-					Console.WriteLine("ERROR: {0}", ex.Message);
+					Program.LogError(ex.Message);
 					color = Color.LightCoral;
 				}
 
@@ -119,7 +119,7 @@ namespace VssSvnConverter
 					buttonImportContinue.BackColor = Color.LightPink;
 					_hungDetected = true;
 
-					Console.WriteLine("HUNG ????");
+					Program.LogAndConsole("HUNG ????");
 				}
 			}
 		}

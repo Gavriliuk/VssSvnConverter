@@ -57,7 +57,7 @@ namespace VssSvnConverter
 			{
 				foreach (var au in badUsers)
 				{
-					Console.WriteLine(au);
+					Program.LogAndConsole(au);
 				}
 				throw new Exception("Some authors not mapped or has bad format. Should be 'Display Name <email@address.org>'");
 			}
@@ -73,17 +73,17 @@ namespace VssSvnConverter
 			{
 				for (var i = 0; i < commits.Count; i++)
 				{
-					Console.WriteLine($"Commit {i}/{commits.Count} ...");
+					Program.LogAndConsole($"Commit {i}/{commits.Count} ...");
 					WriteString($"progress {i}/{commits.Count}\n");
 					WriteCommit(commits[i]);
 				}
 			}
 
-			Console.WriteLine($"fast-import created in file {DataFileName}");
-			Console.WriteLine("Import:");
-			Console.WriteLine($"\tgit fast-import < \"{Path.GetFullPath(DataFileName)}\"");
-			Console.WriteLine("Merge into current branch:");
-			Console.WriteLine($"\tgit merge --allow-unrelated-histories {_branchName}");
+			Program.LogAndConsole($"fast-import created in file {DataFileName}");
+			Program.LogAndConsole("Import:");
+			Program.LogAndConsole($"\tgit fast-import < \"{Path.GetFullPath(DataFileName)}\"");
+			Program.LogAndConsole("Merge into current branch:");
+			Program.LogAndConsole($"\tgit merge --allow-unrelated-histories {_branchName}");
 		}
 
 		void WriteCommit(Commit commit)

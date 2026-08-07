@@ -17,8 +17,34 @@ namespace VssSvnConverter
 		static Options _opts;
 		static bool _exit;
 		static bool _ask = true;
+		static string _logFileName = Path.Combine(Directory.GetCurrentDirectory(), string.Format("{0}-{1:yyMMdd-HHmmss}.log",
+			Path.GetFileNameWithoutExtension(Assembly.GetExecutingAssembly().Location), DateTime.Now));
 
 		public static bool Exit => _exit;
+
+		public static void WriteToLog(string message = null)
+		{
+			File.AppendAllText(_logFileName, message + Environment.NewLine);
+		}
+
+		public static void WriteToLogWithTimestamp(string message = null)
+		{
+			WriteToLog(string.IsNullOrEmpty(message) ? null : string.Format("{0:yyMMdd-HHmmss}: {1}", DateTime.Now, message));
+		}
+
+		public static void LogAndConsole(string format = null, params object[] args)
+		{
+			string message = string.IsNullOrEmpty(format) ? null : string.Format(format, args);
+			WriteToLogWithTimestamp(message);
+			Console.WriteLine(message);
+		}
+
+		public static void LogError(string format, params object[] args)
+		{
+			string message = "ERROR: " + string.Format(format, args);
+			WriteToLogWithTimestamp(message);
+			Console.Error.WriteLine(message);
+		}
 
 		static Int32 Main(string[] args)
 		{
@@ -67,19 +93,19 @@ namespace VssSvnConverter
 
 				if (verbs.Count > 1)
 				{
-					Console.WriteLine("Stages: " + string.Join(", ", verbs) + "\n");
+					LogAndConsole("Stages: " + string.Join(", ", verbs) + "\n");
 				}
 
 				verbs.ForEach(x => ProcessStage(x, true));
 			}
 			catch (ApplicationException ex)
 			{
-				Console.Error.WriteLine(ex.Message);
+				LogError(ex.Message);
 				exitCode = 1;
 			}
 			catch (Exception ex)
 			{
-				Console.Error.WriteLine(ex.ToString());
+				LogError(ex.ToString());
 				exitCode = 1;
 			}
 
@@ -99,7 +125,7 @@ namespace VssSvnConverter
 
 		public static void ProcessStage(string verb, bool noPrompt, Action<float> progress = null)
 		{
-			Console.WriteLine("*** Stage: " + verb + " ***\n");
+			LogAndConsole("*** Stage: " + verb + " ***\n");
 
 			// read config
 			_opts.ReadConfig(GetConfigPath());
@@ -107,7 +133,7 @@ namespace VssSvnConverter
 			switch (verb)
 			{
 				case "test":
-					Console.WriteLine("Test OK");
+					LogAndConsole("Test OK");
 					break;
 
 				case "ui":
@@ -119,47 +145,47 @@ namespace VssSvnConverter
 
 				case "build-list":
 					new ImportListBuilder().Build(_opts);
-					Console.WriteLine("Next: build-versions");
+					LogAndConsole("Next: build-versions");
 					break;
 
 				case "build-list-stats":
 					new ImportListBuilder().FilterFiles(_opts);
-					Console.WriteLine("Next: build-versions");
+					LogAndConsole("Next: build-versions");
 					break;
 
 				case "build-versions":
 					new VssVersionsBuilder().Build(_opts, new ImportListBuilder().Load(), progress);
-					Console.WriteLine("Next: build-cache");
+					LogAndConsole("Next: build-cache");
 					break;
 
 				case "build-links":
 					new LinksBuilder().Build(_opts, new ImportListBuilder().Load());
-					Console.WriteLine("Next: build-cache");
+					LogAndConsole("Next: build-cache");
 					break;
 
 				case "build-cache":
 					new CacheBuilder(_opts).Build(new VssVersionsBuilder().Load(), progress);
-					Console.WriteLine("Next: build-commits");
+					LogAndConsole("Next: build-commits");
 					break;
 
 				case "build-cache-stats":
 					new CacheBuilder(_opts).BuildStats(new VssVersionsBuilder().Load());
-					Console.WriteLine("Next: build-commits");
+					LogAndConsole("Next: build-commits");
 					break;
 
 				case "build-cache-clear-errors":
 					new CacheBuilder(_opts).RemoveCachedErrors();
-					Console.WriteLine("Next: build-commits");
+					LogAndConsole("Next: build-commits");
 					break;
 
 				case "build-commits":
 					new CommitsBuilder().Build(_opts, new CacheBuilder(_opts).Load());
-					Console.WriteLine("Next: build-wc");
+					LogAndConsole("Next: build-wc");
 					break;
 
 				case "build-wc":
 					new WcBuilder().Build(_opts, noPrompt);
-					Console.WriteLine("Next: import");
+					LogAndConsole("Next: import");
 					break;
 
 				case "git-fast-import":
@@ -223,7 +249,7 @@ namespace VssSvnConverter
 				Console.ReadKey();
 			}
 
-			Console.WriteLine("");
+			Console.WriteLine();
 		}
 
 		private static void ShowHelp(string unkVerb = null)

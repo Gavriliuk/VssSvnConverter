@@ -25,8 +25,8 @@ namespace VssSvnConverter
 			var commits = new List<Commit>();
 			var commitRx = new Regex(@"^Commit:(?<at>[0-9]+)\t\tAuthor:(?<user>.+)\t\tComment:(?<comment>.*)$");
 			var labelRx = new Regex(@"^Label: (?<at>[0-9]+)\t\t(?<label>.*)$");
-			Console.WriteLine("Loading commits from {0}", DataFileName);
-			int fcount = 0, lcount = 0;
+			Program.LogAndConsole($"Reading file '{DataFileName}'");
+			int lineCount = 0, fileCount = 0, labelCount = 0;
 			using (var r = File.OpenText(DataFileName))
 			{
 				string line;
@@ -35,6 +35,7 @@ namespace VssSvnConverter
 					if (Program.Exit)
 						throw new Stop();
 
+					lineCount++;
 					if (line.StartsWith("Commit:"))
 					{
 						Match m = commitRx.Match(line);
@@ -42,7 +43,7 @@ namespace VssSvnConverter
 							throw new Exception("Can not parse line: " + line);
 
 						if (commits.Count > 0 && commits.Count % 1000 == 0)
-							Console.WriteLine($"Loaded {commits.Count} commits, {fcount} files, {lcount} labels");
+							Program.LogAndConsole($"Loaded {commits.Count,6} commits, {fileCount,6} files, {labelCount,4} labels");
 
 						commit = new Commit {
 							At = new DateTime(long.Parse(m.Groups["at"].Value), DateTimeKind.Utc),
@@ -61,7 +62,7 @@ namespace VssSvnConverter
 							throw new Exception("Can not parse line: " + line);
 
 						commit.AddLabel(m.Groups["label"].Value, long.Parse(m.Groups["at"].Value));
-						lcount++;
+						labelCount++;
 					}
 					else if (line.StartsWith("\t"))
 					{
@@ -75,7 +76,7 @@ namespace VssSvnConverter
 							VssVersion = int.Parse(arr[0]),
 							At = new DateTime(long.Parse(arr[1]), DateTimeKind.Utc)
 						});
-						fcount++;
+						fileCount++;
 					}
 					else
 					{
@@ -84,8 +85,9 @@ namespace VssSvnConverter
 				}
 
 				if (commits.Count % 1000 != 0)
-					Console.WriteLine($"Loaded {commits.Count} commits, {fcount} files, {lcount} labels");
+					Program.LogAndConsole($"Loaded {commits.Count,6} commits, {fileCount,6} files, {labelCount,4} labels");
 			}
+			Program.LogAndConsole($"{lineCount} lines read from file '{DataFileName}'\n");
 			return commits;
 		}
 
@@ -104,6 +106,7 @@ namespace VssSvnConverter
 			List<Commit> commits = SliceToCommits(versions);
 
 			// save
+			Program.LogAndConsole($"Writing file '{DataFileName}' (git commits)");
 			using (var wr = File.CreateText(DataFileName))
 			{
 				foreach (var c in commits)
@@ -111,16 +114,18 @@ namespace VssSvnConverter
 					if (Program.Exit)
 						throw new Stop();
 
-					wr.WriteLine("Commit:{0}\t\tAuthor:{1}\t\tComment:{2}", c.At.Ticks, c.Author, SerializeMultilineText(c.Comment));
+					wr.WriteLine($"Commit:{c.At.Ticks}\t\tAuthor:{c.Author}\t\tComment:{SerializeMultilineText(c.Comment)}");
 					c.Labels.ToList().ForEach(label => wr.WriteLine($"Label: {label.Value}\t\t{label.Key}"));
 					c.Files.ToList().ForEach(f => {
 						Debug.Assert(f.At.Kind == DateTimeKind.Utc);
-						wr.WriteLine("\t{0}:{1}:{2}", f.VssVersion, f.At.Ticks, f.FileSpec);
+						wr.WriteLine($"\t{f.VssVersion}:{f.At.Ticks}:{f.FileSpec}");
 					});
 				}
 			}
+			Program.LogAndConsole($"{new FileInfo(DataFileName).Length} bytes written to file '{DataFileName}'\n");
 
 			// save commits info (log like)
+			Program.LogAndConsole($"Writing file '{CommitLogFileName}' (commits log)");
 			using (var wr = File.CreateText(CommitLogFileName))
 			{
 				foreach (var c in commits)
@@ -134,20 +139,21 @@ namespace VssSvnConverter
 						wr.WriteLine("\t" + comment);
 				}
 			}
+			Program.LogAndConsole($"{new FileInfo(CommitLogFileName).Length} bytes written to file '{CommitLogFileName}'\n");
 
-			Console.WriteLine("{0} commits produced.", commits.Count);
+			Program.LogAndConsole($"{commits.Count} commits produced.");
 
 			if (_notMappedAuthors.Count > 0)
 			{
-				Console.WriteLine("Not mapped users:");
-				_notMappedAuthors.ToList().ForEach(u => Console.WriteLine($"{u} = ?"));
+				Program.LogAndConsole("Not mapped users:");
+				_notMappedAuthors.ToList().ForEach(u => Program.LogAndConsole($"{u} = ?"));
 
 				if (_opts.UserMappingStrict)
 				{
 					throw new ApplicationException("Stop execution.");
 				}
 			}
-			Console.WriteLine("Build commits list complete. Check " + DataFileName);
+			Program.LogAndConsole("Build commits list complete. Check " + DataFileName);
 		}
 
 		void MapAuthors(IEnumerable<FileRevision> revs)
@@ -224,7 +230,7 @@ namespace VssSvnConverter
 			Commit commit = null;
 			int labelId = 0;
 
-			Console.WriteLine($"Building commits from {revs.Count} revisions");
+			Program.LogAndConsole($"Building commits from {revs.Count} revisions");
 			foreach (FileRevision rev in revs)
 			{
 				if (Program.Exit)

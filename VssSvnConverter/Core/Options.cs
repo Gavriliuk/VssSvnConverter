@@ -99,7 +99,7 @@ namespace VssSvnConverter.Core
 					var pos = l.IndexOf('=');
 					if (pos == -1)
 					{
-						Console.WriteLine("Wrong line in config: {0}", l);
+						Program.LogError("Wrong line in config: {0}", l);
 						Environment.Exit(-1);
 					}
 
@@ -259,28 +259,28 @@ namespace VssSvnConverter.Core
 			SourceSafeIni = Config["source-safe-ini"].DefaultIfEmpty("srcsafe.ini").First();
 			if (string.IsNullOrEmpty(SourceSafeIni))
 			{
-				Console.Error.WriteLine("ERROR: The parameter source-safe-ini is empty (didn't you forget to modify the conf file?)");
+				Program.LogError("The parameter source-safe-ini is empty (didn't you forget to modify the conf file?)");
 				Environment.Exit(-1);
 			}
 			if (!File.Exists(SourceSafeIni))
 			{
-				Console.Error.WriteLine("ERROR: The parameter source-safe-ini is invalid: {0}", SourceSafeIni);
+				Program.LogError("The parameter source-safe-ini is invalid: {0}", SourceSafeIni);
 				Environment.Exit(-1);
 			}
-			
+
 			SourceSafeUser = Config["source-safe-user"].DefaultIfEmpty("").First();
 			if (string.IsNullOrEmpty(SourceSafeIni))
 			{
-				Console.Error.WriteLine("ERROR: The parameter source-safe-user is empty");
+				Program.LogError("The parameter source-safe-user is empty");
 				Environment.Exit(-1);
 			}
 
 			SourceSafePassword = Config["source-safe-password"].DefaultIfEmpty("").First();
 			DB = new Lazy<VSSDatabase>(() => {
-				Console.WriteLine("Initialize VSS driver....");
+				Program.LogAndConsole("Initialize VSS driver....");
 				var db = new VSSDatabase();
 				db.Open(SourceSafeIni, SourceSafeUser, SourceSafePassword);
-				Console.WriteLine("VSS driver initialized");
+				Program.LogAndConsole("VSS driver initialized");
 				return db;
 			});
 

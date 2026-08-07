@@ -128,18 +128,16 @@ namespace VssSvnConverter
 
 					// mark imported file with token
 					var file = importedLink.Trim("$/\\".ToCharArray());
-					Console.WriteLine("ihs:link-token: {0}", file);
+					Program.LogAndConsole("ihs:link-token: {0}", file);
 					sw.WriteLine("svn ps ihs:link-token \"{0}\" \"{1}\"", token, file);
 
 					// add other links into DB
 					forAdd2Db.ForEach(l => {
-						Console.WriteLine("Add 2 DB: {0}", l);
+						Program.LogAndConsole("Add 2 DB: {0}", l);
 						file2Token.AddRef(l, token);
 						token2Files.AddRef(token, l);
 						add2DbSet.Add(l);
 					});
-
-					Console.WriteLine();
 				}
 
 				// check all imported specs (except already handled) if they has token in db
@@ -154,7 +152,7 @@ namespace VssSvnConverter
 					// mark imported file with token
 					var file = imported.Trim("$/\\".ToCharArray());
 
-					Console.WriteLine("Mark with ihs:link-token: {0}", file);
+					Program.LogAndConsole("Mark with ihs:link-token: {0}", file);
 
 					sw.WriteLine("svn ps ihs:link-token \"{0}\" \"{1}\"", token, file);
 				}

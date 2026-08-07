@@ -79,7 +79,7 @@ namespace VssSvnConverter.Core
 			int pos = author.IndexOf('<');
 			commentParts.Add(pos < 0 ? author : author.Substring(0, pos).Trim());
 			string comment = string.Join(" ", commentParts);
-			//Console.WriteLine(comment);
+			//Program.LogAndConsole(comment);
 
 			string commitMessageFile = Path.Combine(_gitHelper.GitDir, "IMPORT_COMMIT_MESSAGE");
 			File.WriteAllText(commitMessageFile, comment);
@@ -113,8 +113,8 @@ namespace VssSvnConverter.Core
 				}
 				catch (Exception e)
 				{
-					Console.WriteLine($"Importing commit {commit.At:yyyy-MM-dd HH:ss:mm} by {commit.Author}");
-					Console.WriteLine($"Error adding tag '{tag}' (for label '{label}'):\n" + e.Message);
+					Program.LogAndConsole($"Importing commit {commit.At:yyyy-MM-dd HH:ss:mm} by {commit.Author}");
+					Program.LogAndConsole($"Error adding tag '{tag}' (for label '{label}'):\n" + e.Message);
 					_gitHelper.ExecCommit("reset --hard HEAD^1");
 					throw;
 				}

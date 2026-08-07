@@ -86,12 +86,13 @@ namespace VssSvnConverter
 				}
 			}
 
-			Console.WriteLine($"Importing commits from {fromCommit} to {commits.Count}");
+			Program.LogAndConsole($"Importing commits from {fromCommit} to {commits.Count}");
 
 			int lastCommit = fromCommit;
 			var stopWatch = new Stopwatch();
 			stopWatch.Start();
 
+			Program.LogAndConsole($"Writing file '{LogFileName}' (file stats by extensions)");
 			using (_cache = new VssFileCache(opts.CacheDir, _opts.SourceSafeIni))
 			using (var log = File.CreateText(LogFileName))
 			{
@@ -121,7 +122,7 @@ namespace VssSvnConverter
 
 						//var c = commits[i];
 
-						//Console.WriteLine($"[{i,6}/{commits.Count}] Import: {c.At:yyyy-MMM-dd HH:ss:mm}, by {c.Author}");
+						//Program.LogAndConsole($"[{i,6}/{commits.Count}] Import: {c.At:yyyy-MMM-dd HH:ss:mm}, by {c.Author}");
 						int prc = 100 * (i - fromCommit) / (commits.Count - fromCommit);
 						if (prc > lastPrc)
 						{
@@ -131,7 +132,7 @@ namespace VssSvnConverter
 						}
 
 						if (i > 0 && (i == fromCommit || i % 100 == 0))
-							Console.WriteLine($"Imported {i} commits from {commits.Count} ({prc}%). Time: {stopWatch.Elapsed}");
+							Program.LogAndConsole($"Imported {i,6} commits from {commits.Count,6} ({prc,3}%). Time: {stopWatch.Elapsed}");
 
 						DogWatch = DateTimeOffset.Now;
 
@@ -165,8 +166,9 @@ namespace VssSvnConverter
 				}
 			}
 
-			if (lastCommit > fromCommit && lastCommit % 100 == 0)
-				Console.WriteLine($"Imported {lastCommit} commits from {commits.Count} ({100 * lastCommit / commits.Count}%). Time: {stopWatch.Elapsed}");
+			if (lastCommit > fromCommit && lastCommit % 100 != 0)
+				Program.LogAndConsole($"Imported {lastCommit,6} commits from {commits.Count,6} ({100 * lastCommit / commits.Count,3}%). Time: {stopWatch.Elapsed}");
+			Program.LogAndConsole($"{new FileInfo(LogFileName).Length} bytes written to file '{LogFileName}'\n");
 
 			stopWatch.Stop();
 
@@ -174,11 +176,11 @@ namespace VssSvnConverter
 
 			if (StopImport)
 			{
-				Console.WriteLine("Import interrupted.");
+				Program.LogAndConsole("Import interrupted.\n");
 			}
 			else
 			{
-				Console.WriteLine("Import complete.");
+				Program.LogAndConsole("Import complete.\n");
 
 				if (opts.ImportDriver == "git" && !string.IsNullOrWhiteSpace(opts.GitStartAfterImport))
 				{
@@ -370,7 +372,7 @@ namespace VssSvnConverter
 
 			File.WriteAllLines(dstPath, lines, enc);
 
-			Console.WriteLine("	Censored: {0}", testPath);
+			Program.LogAndConsole("\tCensored: {0}", testPath);
 		}
 
 		void RevertUnimportant(IDestinationDriver driver, string path, string relPath, Action<bool> prepareFileForModifications)
@@ -401,7 +403,7 @@ namespace VssSvnConverter
 				// revert all unimportant changes
 				driver.Revert(path);
 
-				Console.WriteLine("	Skip unimportant: {0}", relPath);
+				Program.LogAndConsole("\tSkip unimportant: {0}", relPath);
 			}
 		}
 	}

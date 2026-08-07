@@ -23,7 +23,7 @@ namespace VssSvnConverter
 			var xrefs = new XRefMap();
 			foreach (var file in files.Select(t => t.Item1))
 			{
-				Console.WriteLine(file);
+				Program.LogAndConsole(file);
 
 				var item = opts.DB.Value.VSSItem[file];
 
@@ -73,8 +73,8 @@ namespace VssSvnConverter
 				}
 			}
 
-			Console.WriteLine("VSS links: {0} pcs", xrefs.Map.Count);
-			Console.WriteLine("Checkouts: {0} pcs", xrefsCo.Map.Count);
+			Program.LogAndConsole("VSS links: {0} pcs", xrefs.Map.Count);
+			Program.LogAndConsole("Checkouts: {0} pcs", xrefsCo.Map.Count);
 		}
 	}
 }

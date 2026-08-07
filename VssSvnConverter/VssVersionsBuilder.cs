@@ -8,6 +8,7 @@ using System.Diagnostics;
 using SourceSafeTypeLib;
 using vsslib;
 using VssSvnConverter.Core;
+using vcslib;
 
 namespace VssSvnConverter
 {
@@ -110,7 +111,9 @@ namespace VssSvnConverter
 
 		public void Save()
 		{
+			Program.LogAndConsole($"Writing file '{DataFileName}' (VSS labels)");
 			File.WriteAllLines(DataFileName, _all.Select(l => $"{l.Value}\t{l.Key}"));
+			Program.LogAndConsole($"{new FileInfo(DataFileName).Length} bytes written to file '{DataFileName}'\n", new FileInfo(DataFileName).Length, DataFileName);
 		}
 
 		public void Load()
@@ -120,16 +123,20 @@ namespace VssSvnConverter
 			if (!File.Exists(DataFileName))
 				return;
 
+			int lineCount = 0;
+			Program.LogAndConsole($"Reading file '{DataFileName}'");
 			using (StreamReader r = File.OpenText(DataFileName))
 			{
 				string line;
 				while ((line = r.ReadLine()) != null)
 				{
+					lineCount++;
 					string[] arr = line.Split('\t');
 					Debug.Assert(arr.Length == 2);
 					_all.Add(arr[1], long.Parse(arr[0]));
 				}
 			}
+			Program.LogAndConsole($"{lineCount} lines read from file '{DataFileName}'\n", lineCount, DataFileName);
 		}
 
 		public static CommitLabels LoadNew()
@@ -147,19 +154,19 @@ namespace VssSvnConverter
 
 		readonly Regex _versionRx = new Regex(@"^Ver:(?<ver>[0-9]+)\tSpec:(?<spec>[^\t]+)\tPhys:(?<phys>[^\t]+)\tAuthor:(?<user>[^\t]+)\tAt:(?<at>[0-9]+)\tDT:(?<dt>[^\t]+)\tComment:(?<comment>.*)$");
 
-		public List<FileRevision> Load(string file = DataFileName)
+		public List<FileRevision> Load(string file = DataFileName, bool writeToConsole = true)
 		{
-			bool writeToConsole = file == DataFileName || file == CacheBuilder.DataFileName;
-
 			if (writeToConsole)
-				Console.WriteLine("Loading versions from {0}", file);
+				Program.LogAndConsole("Loading versions from file '{0}'", file);
 
 			var list = new List<FileRevision>();
+			int lineCount = 0;
 			using (var r = File.OpenText(file))
 			{
 				string line;
 				while ((line = r.ReadLine()) != null)
 				{
+					lineCount++;
 					var m = _versionRx.Match(line);
 					if (!m.Success)
 						continue;
@@ -175,12 +182,15 @@ namespace VssSvnConverter
 
 					list.Add(v);
 					if (writeToConsole && list.Count % 10000 == 0)
-						Console.WriteLine("Loaded {0} versions for {1} files, {2} users", list.Count, FileRevision.FileCount, FileRevision.UserCount);
+						Program.LogAndConsole("Loaded {0,8} versions for {1,6} files, {2,2} users", list.Count, FileRevision.FileCount, FileRevision.UserCount);
 				}
 			}
 
 			if (writeToConsole && list.Count % 10000 != 0)
-				Console.WriteLine("Loaded {0} versions for {1} files, {2} users", list.Count, FileRevision.FileCount, FileRevision.UserCount);
+				Program.LogAndConsole("Loaded {0,8} versions for {1,6} files, {2,2} users", list.Count, FileRevision.FileCount, FileRevision.UserCount);
+
+			if (writeToConsole)
+				Program.LogAndConsole("{0} lines read from file '{1}'\n", lineCount, file);
 
 			return list;
 		}
@@ -190,13 +200,17 @@ namespace VssSvnConverter
 			var stopWatch = new Stopwatch();
 			stopWatch.Start();
 
-			Console.WriteLine("Building version list to {0}", DataFileName);
-
 			CommitLabels labels = CommitLabels.LoadNew();
 
 			int findex = 0, vindex = 0, lastProgressPrc = 0;
+			var cacheDir = opts.CacheDir + "-revs";
+			int fileCount = FileCache.GetEntryCount(cacheDir);
 
-			using (var cache = new VssFileCache(opts.CacheDir + "-revs", opts.SourceSafeIni))
+			Program.LogAndConsole($"Using {fileCount} files from cache dir '{cacheDir}'");
+			Program.LogAndConsole($"Writing file '{DataFileName}' (raw version list)");
+			Program.LogAndConsole($"Writing file '{LogFileName}' (raw versions log)");
+
+			using (var cache = new VssFileCache(cacheDir, opts.SourceSafeIni))
 			using (var wr = File.CreateText(DataFileName))
 			using (var log = File.CreateText(LogFileName))
 			{
@@ -210,7 +224,7 @@ namespace VssSvnConverter
 						throw new Stop();
 
 					if (findex > 0 && findex % 100 == 0)
-						Console.WriteLine("Built {0} versions for {1} files ({2}%). Time: {3}", vindex, findex, lastProgressPrc, stopWatch.Elapsed);
+						Program.LogAndConsole($"Built {vindex,8} versions for {findex,6} files ({lastProgressPrc,3}%). Time: {stopWatch.Elapsed}");
 
 					int progressPrc = 100 * findex / files.Count;
 					if (progressPrc > lastProgressPrc)
@@ -229,7 +243,7 @@ namespace VssSvnConverter
 						string cachedData = cache.GetFilePath(spec, head);
 						if (cachedData != null)
 						{
-							List<FileRevision> cachedItemRevisions = Load(cachedData);
+							List<FileRevision> cachedItemRevisions = Load(cachedData, false);
 							if (cachedItemRevisions.Count > 0)
 							{
 								Save(wr, cachedItemRevisions);
@@ -284,8 +298,8 @@ namespace VssSvnConverter
 							}
 							catch (Exception ex)
 							{
-								Console.WriteLine("ERROR: Get Physical: " + ex.Message);
-								log.WriteLine("ERROR: Get Physical: {0}", spec);
+								Program.LogError("Get Physical: " + ex.Message);
+								log.WriteLine($"ERROR: Get Physical: {spec}");
 								log.WriteLine(ex.ToString());
 								fileVersionInfo.Physical = "_UNKNOWN_";
 							}
@@ -336,7 +350,7 @@ namespace VssSvnConverter
 					catch (Exception ex)
 					{
 						log.WriteLine($"ERROR: {spec}\n{ex}");
-						Console.WriteLine($"ERROR: {spec}\n{ex.Message}");
+						Program.LogError($"{spec}\n{ex.Message}");
 					}
 				}
 			}
@@ -345,7 +359,13 @@ namespace VssSvnConverter
 			labels.Save();
 
 			stopWatch.Stop();
-			Console.WriteLine("Building version list complete. Built {0} versions for {1} files. Time: {2}", vindex, findex, stopWatch.Elapsed);
+			fileCount = FileCache.GetEntryCount(cacheDir);
+
+			Program.LogAndConsole("Building version list complete");
+			Program.LogAndConsole($"Built {vindex,8} versions for {findex,6} files (100%). Time: {stopWatch.Elapsed}");
+			Program.LogAndConsole($"{fileCount} files stored in cache dir '{cacheDir}'");
+			Program.LogAndConsole($"{new FileInfo(DataFileName).Length} bytes written to file '{DataFileName}'");
+			Program.LogAndConsole($"{new FileInfo(LogFileName).Length} bytes written to file '{LogFileName}'\n");
 		}
 
 		bool IsLatestOnly(Options opts, string spec)
@@ -357,9 +377,7 @@ namespace VssSvnConverter
 		{
 			foreach (var rev in r)
 			{
-				wr.WriteLine("Ver:{0}\tSpec:{1}\tPhys:{2}\tAuthor:{3}\tAt:{4}\tDT:{5}\tComment:{6}",
-					rev.VssVersion, rev.FileSpec, rev.Physical, rev.User, rev.At.Ticks, rev.At,
-					rev.Comment.Replace("\r\n", "\n").Replace('\r', '\n').Replace('\n', '\u0001'));
+				wr.WriteLine($"Ver:{rev.VssVersion}\tSpec:{rev.FileSpec}\tPhys:{rev.Physical}\tAuthor:{rev.User}\tAt:{rev.At.Ticks}\tDT:{rev.At}\tComment:{rev.Comment.Replace("\r\n", "\n").Replace('\r', '\n').Replace('\n', '\u0001')}");
 			}
 		}
 	}
