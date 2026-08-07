@@ -149,8 +149,8 @@ namespace VssSvnConverter
 
 	class VssVersionsBuilder
 	{
-		const string DataFileName = "2-raw-versions-list.txt";
-		const string LogFileName = "log-2-raw-versions-list.txt";
+		const string DataFileName = "2-raw-versions.txt";
+		const string LogFileName = "2-raw-versions.log";
 
 		readonly Regex _versionRx = new Regex(@"^Ver:(?<ver>[0-9]+)\tSpec:(?<spec>[^\t]+)\tPhys:(?<phys>[^\t]+)\tAuthor:(?<user>[^\t]+)\tAt:(?<at>[0-9]+)\tDT:(?<dt>[^\t]+)\tComment:(?<comment>.*)$");
 

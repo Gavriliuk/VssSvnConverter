@@ -12,8 +12,8 @@ namespace VssSvnConverter
 {
 	class CommitsBuilder
 	{
-		const string DataFileName = "5-commits-list.txt";
-		const string CommitLogFileName = "5-commits-log.txt";
+		const string DataFileName = "5-commits.txt";
+		const string CommitLogFileName = "5-commits.log";
 
 		Options _opts;
 

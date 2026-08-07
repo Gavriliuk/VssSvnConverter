@@ -11,13 +11,12 @@ namespace VssSvnConverter
 {
 	class ImportListBuilder
 	{
-		const string AllFilesList = "1-list.txt";
-		const string ExcludedFilesList = "1-not-import-list.txt";
-		const string FilesList = "1-import-list.txt";
-
-		const string DataFileRootTypes = "1-roots.txt";
-		const string DataExtsFileName = "1-import-list-exts.txt";
-		const string DataSizesFileName = "1-import-list-sizes.txt";
+		const string DataFileRootTypes = "0-roots.txt";
+		const string AllFilesList = "1-all-files.txt";
+		const string DataExtsFileName = "1-files-by-ext.txt";
+		const string DataSizesFileName = "1-files-by-size.txt";
+		const string ExcludedFilesList = "1-files-to-ignore.txt";
+		const string FilesList = "1-files-to-import.txt";
 
 		List<Tuple<string, int>> _files;
 

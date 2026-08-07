@@ -14,12 +14,12 @@ namespace VssSvnConverter
 {
 	class CacheBuilder
 	{
-		public const string DataFileName = "4-cached-versions-list.txt";
-		const string LogFileName = "log-4-cached-versions-list.txt";
-		const string ErrorsFileName = "log-4-errors-list.txt";
-		const string OnlyLastVersionFileName = "log-4-only-last-versions-list.txt";
-		const string VersionsCountFileName = "log-4-versions-count-list.txt";
-		const string UndoneVersionsCountFileName = "log-4-undone-versions-count-list.txt";
+		public const string DataFileName = "4-cached-versions.txt";
+		const string LogFileName = "4-cached-versions.log";
+		const string ErrorsFileName = "4-errors.log";
+		const string OnlyLastVersionFileName = "4-only-last-versions.log";
+		const string VersionsCountFileName = "4-version-counts.log";
+		const string UndoneVersionsCountFileName = "4-undone-version-counts.log";
 
 		IVSSDatabase _db;
 		VssFileCache _cache;
