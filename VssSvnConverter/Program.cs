@@ -71,7 +71,7 @@ namespace VssSvnConverter
 					.Select(a => a.ToLowerInvariant())
 					.SelectMany(a => {
 						if (a== "all")
-							return new[] { "build-list", "build-list-stats", "build-versions", "build-links", "build-cache", "build-commits", "build-wc", "import", "build-scripts" };
+							return new[] { "build-list", "build-versions", "build-cache", "build-commits", "build-wc", "import-new" };
 
 						return Enumerable.Repeat(a, 1);
 					})
