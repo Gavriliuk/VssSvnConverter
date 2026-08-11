@@ -221,13 +221,13 @@ namespace VssSvnConverter
 						var rx = opts.Config[string.Format("censore-{0}-match{1}", v, i)].Select(x => new Regex(x, RegexOptions.IgnoreCase)).FirstOrDefault();
 						var replace = opts.Config[string.Format("censore-{0}-replace{1}", v, i)].FirstOrDefault();
 
-						if (i >= 1 && rx == null && replace == null)
+						if (i > 0 && rx == null && replace == null)
 							break;
 
 						if (rx == null && replace == null)
 							continue;
 
-						var rpl = Tuple.Create(rx, replace);
+						var rpl = Tuple.Create(rx, Regex.Unescape(replace));
 
 						replacements.Add(rpl);
 					}
@@ -347,33 +347,35 @@ namespace VssSvnConverter
 
 			var enc = censors.Select(cg => cg.Encoding).DefaultIfEmpty(Encoding.ASCII).First();
 
-			var modified = false;
+			var modified = 0;
 			var lines = File.ReadAllLines(dstPath, enc);
 
-			foreach (var cs in censors)
+			for (var i = 0; i < lines.Length; i++)
 			{
-				foreach (var replacement in cs.Replacement)
+				var oldStr = lines[i];
+				var newStr = oldStr;
+				foreach (var cs in censors)
 				{
-					for (var i = 0; i < lines.Length; i++)
+					foreach (var replacement in cs.Replacement)
 					{
-						var newStr = replacement.Item1.Replace(lines[i], replacement.Item2);
-						if (newStr != lines[i])
-						{
-							lines[i] = newStr;
-							modified = true;
-						}
+						newStr = replacement.Item1.Replace(newStr, replacement.Item2);
 					}
+				}
+				if (newStr != oldStr)
+				{
+					lines[i] = newStr;
+					modified++;
 				}
 			}
 
-			if (!modified)
+			if (modified == 0)
 				return;
 
 			prepareFileForModifications(false);
 
 			File.WriteAllLines(dstPath, lines, enc);
 
-			Program.LogAndConsole("\tCensored: {0}", testPath);
+			Program.WriteToLogWithTimestamp($"\tCensored: '{testPath}' ({modified} lines)");
 		}
 
 		void RevertUnimportant(IDestinationDriver driver, string path, string relPath, Action<bool> prepareFileForModifications)
