@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -250,6 +251,49 @@ namespace VssSvnConverter
 			}
 
 			Console.WriteLine();
+		}
+
+		public static int ProcessStart(string file, string args = null)
+		{
+			var psi = new ProcessStartInfo
+			{
+				FileName = file,
+				Arguments = args,
+				UseShellExecute = false,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				CreateNoWindow = true
+			};
+
+			WriteToLogWithTimestamp(string.Format("START: {0} {1}", psi.FileName, psi.Arguments));
+
+			using (var process = new Process())
+			{
+				process.StartInfo = psi;
+
+				process.OutputDataReceived += (sender, e) =>
+				{
+					if (e.Data != null)
+						WriteToLogWithTimestamp(e.Data);
+				};
+
+				process.ErrorDataReceived += (sender, e) =>
+				{
+					if (e.Data != null)
+						LogError(e.Data);
+				};
+
+				process.Start();
+
+				process.BeginOutputReadLine();
+				process.BeginErrorReadLine();
+
+				process.WaitForExit();
+
+				LogAndConsole();
+
+				return process.ExitCode;
+			}
 		}
 
 		private static void ShowHelp(string unkVerb = null)

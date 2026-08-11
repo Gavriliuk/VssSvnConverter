@@ -184,7 +184,8 @@ namespace VssSvnConverter
 
 				if (opts.ImportDriver == "git" && !string.IsNullOrWhiteSpace(opts.GitStartAfterImport))
 				{
-					Process.Start(opts.GitStartAfterImport, opts.GitStartAfterImportArgs.Replace("%REPODIR%", opts.GitRepoDir));
+					if (Program.ProcessStart(opts.GitStartAfterImport, opts.GitStartAfterImportArgs.Replace("%REPODIR%", opts.GitRepoDir)) != 0)
+						throw new Exception("Failed to start post-import script");
 				}
 			}
 		}
