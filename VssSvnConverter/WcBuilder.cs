@@ -1,5 +1,6 @@
-﻿using System.IO;
-using System;
+﻿using System;
+using System.Diagnostics;
+using System.IO;
 using System.Windows.Forms;
 using VssSvnConverter.Core;
 
@@ -17,6 +18,9 @@ namespace VssSvnConverter
 					{
 						File.Delete(Importer.DataFileName);
 						GitDriver.Create(opts.GitExe, opts.GitRepoDir);
+						if (!string.IsNullOrWhiteSpace(opts.GitStartAfterInit))
+							if (Program.ProcessStart(opts.GitStartAfterInit, opts.GitStartAfterInitArgs.Replace("%REPODIR%", opts.GitRepoDir)) != 0)
+								throw new Exception("Failed to start post-init script");
 					}
 				}
 			}

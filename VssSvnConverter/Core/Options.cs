@@ -55,6 +55,8 @@ namespace VssSvnConverter.Core
 		public string GitDefaultAuthorDomain;
 		public string GitRepoDir;
 		public bool IsGitRepoDirExternal;
+		public string GitStartAfterInit;
+		public string GitStartAfterInitArgs;
 		public string GitStartAfterImport;
 		public string GitStartAfterImportArgs;
 
@@ -188,6 +190,14 @@ namespace VssSvnConverter.Core
 				GitDefaultAuthorDomain = Config["git-default-author-domain"]
 					.DefaultIfEmpty("@dummy-email.org")
 					.First()
+				;
+
+				GitStartAfterInit = Config["git-start-after-init"]
+					.FirstOrDefault()
+				;
+
+				GitStartAfterInitArgs = Config["git-start-after-init-args"]
+					.FirstOrDefault() ?? ""
 				;
 
 				GitStartAfterImport = Config["git-start-after-import"]
