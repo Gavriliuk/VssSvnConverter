@@ -66,9 +66,6 @@ namespace VssSvnConverter.Core
 
 		public void CommitRevision(Commit commit)
 		{
-			DateTime time = commit.At;
-			string author = commit.Author;
-
 			List<string> commentParts = commit.Labels.Select(l => l.Key)
 				.Select(l => l.StartsWith("(") && l.EndsWith(")") ? l : "{" + l + "}").ToList();
 			if (!string.IsNullOrEmpty(commit.Comment))
@@ -76,46 +73,48 @@ namespace VssSvnConverter.Core
 			int count = commit.Files.Count();
 			string s = count == 1 ? "" : "s";
 			commentParts.Add($"({count} file{s})");
+			string author = commit.Author;
 			int pos = author.IndexOf('<');
 			commentParts.Add(pos < 0 ? author : author.Substring(0, pos).Trim());
 			string comment = string.Join(" ", commentParts);
 			//Program.LogAndConsole(comment);
 
-			string commitMessageFile = Path.Combine(_gitHelper.GitDir, "IMPORT_COMMIT_MESSAGE");
-			File.WriteAllText(commitMessageFile, comment);
-
-			if (author.IndexOf('<') == -1 || author.IndexOf('>') == -1)
+			string authorName, authorEmail;
+			int pos2 = pos >= 0 ? author.IndexOf('>', pos + 1) : -1;
+			if (pos2 > 0)
 			{
-				string authorName = author;
-				string authorEmail = author;
-
-				// strip @ from name
-				if (authorName.IndexOf('@') != -1)
-					authorName = authorName.Substring(0, author.IndexOf('@'));
-
-				// add @domain to mail
-				if (authorEmail.IndexOf('@') == -1)
-					authorEmail = authorEmail + _defaultEmailDomain;
-
-				author = string.Format("{0} <{1}>", authorName, authorEmail);
+				authorName = author.Substring(0, pos).Trim();
+				authorEmail = author.Substring(pos + 1, pos2 - pos - 1).Trim();
+			}
+			else
+			{
+				int at = author.IndexOf('@');
+				authorName = at != -1 ? author.Substring(0, at) : author; // Strip @domain from name
+				authorEmail = at == -1 ? author + _defaultEmailDomain : author; // Add @domain to mail
 			}
 
-			var cmd = string.Format("commit --all --file=\"{0}\" --allow-empty-message --author=\"{1}\" --date={2}", commitMessageFile, author, time.ToString("o"));
+			var r = _gitHelper.ExecCommit(comment, authorName, authorEmail, commit.At);
 
-			_gitHelper.ExecCommit(cmd);
+			if (commit.Labels.Count == 0)
+				return;
 
+			var createdTags = new List<string>();
 			foreach (string label in commit.Labels.Keys)
 			{
 				string tag = Commit.MakeTag(label);
 				try
 				{
-					_gitHelper.ExecCommit($"tag \"{tag}\"");
+					_gitHelper.Exec($"tag \"{tag}\"");
+					createdTags.Add(tag);
 				}
 				catch (Exception e)
 				{
-					Program.LogAndConsole($"Importing commit {commit.At:yyyy-MM-dd HH:ss:mm} by {commit.Author}");
+					Program.LogAndConsole($"Importing commit {commit.At:yyyy-MM-dd HH:mm:ss} by {commit.Author}");
 					Program.LogAndConsole($"Error adding tag '{tag}' (for label '{label}'):\n" + e.Message);
-					_gitHelper.ExecCommit("reset --hard HEAD^1");
+					foreach (string createdTag in createdTags)
+						_gitHelper.Exec($"tag -d \"{createdTag}\"", noValidate: true);
+					if (r.ExitCode == 0)
+						_gitHelper.Exec("reset --hard HEAD^1", noValidate: true);
 					throw;
 				}
 			}

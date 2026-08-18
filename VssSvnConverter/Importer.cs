@@ -122,7 +122,7 @@ namespace VssSvnConverter
 
 						//var c = commits[i];
 
-						//Program.LogAndConsole($"[{i,6}/{commits.Count}] Import: {c.At:yyyy-MMM-dd HH:ss:mm}, by {c.Author}");
+						//Program.LogAndConsole($"[{i,6}/{commits.Count}] Import: {c.At:yyyy-MMM-dd HH:mm:ss}, by {c.Author}");
 						int prc = 100 * (i - fromCommit) / (commits.Count - fromCommit);
 						if (prc > lastPrc)
 						{

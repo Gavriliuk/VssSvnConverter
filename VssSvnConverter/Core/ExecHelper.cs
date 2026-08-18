@@ -105,7 +105,7 @@ namespace VssSvnConverter.Core
 			if (envVars != null)
 			{
 				foreach (var envVar in envVars)
-					psi.EnvironmentVariables.Add(envVar.Key, envVar.Value);
+					psi.EnvironmentVariables[envVar.Key] = envVar.Value;
 			}
 
 			_log.WriteLine("START: {0} {1}", psi.FileName, psi.Arguments);
