@@ -30,6 +30,7 @@ namespace VssSvnConverter
 			using (var r = File.OpenText(DataFileName))
 			{
 				string line;
+				int commitNumber = 0;
 				while ((line = r.ReadLine()) != null)
 				{
 					if (Program.Exit)
@@ -45,10 +46,12 @@ namespace VssSvnConverter
 						if (commits.Count > 0 && commits.Count % 1000 == 0)
 							Program.LogAndConsole($"Loaded {commits.Count,6} commits, {fileCount,6} files, {labelCount,4} labels");
 
+						string number = $"VSS-{++commitNumber:D5}";
+						string comment = DeserializeMultilineText(m.Groups["comment"].Value);
 						commit = new Commit {
 							At = new DateTime(long.Parse(m.Groups["at"].Value), DateTimeKind.Utc),
 							Author = m.Groups["user"].Value,
-							Comment = DeserializeMultilineText(m.Groups["comment"].Value)
+							Comment = string.IsNullOrEmpty(comment) ? number : number + " " + comment,
 						};
 
 						commits.Add(commit);
